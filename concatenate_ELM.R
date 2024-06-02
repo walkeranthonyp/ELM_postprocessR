@@ -2,6 +2,12 @@
 #if(concatenate_caseid | concatenate_uq) {
 
 
+print('',quote=F)
+print('Concatenate processed ELM output into a single RDS file',quote=F)
+print(caseidprefix,quote=F)
+print(cases,quote=F)
+
+
 # caseidprefix loop 
 for(cid in 1:length(caseidprefix)) {
 

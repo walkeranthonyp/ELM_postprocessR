@@ -130,15 +130,19 @@ time_conv <- list(
 )
 
 
+# separates spins and transient cases into a list of sets of cases to concatenate
+# -- i.e. each list element contains a vector of spins or transient cases to concatenate
 breakout_cases <- function(v, spinss, case_labs ) {
-  if(any(spinss)) {
+  l <- list(v) 
+  if(sum(spinss)==length(spinss)) {
+    case_labs <- 'spins'
+  } else if(any(spinss)) {
     l <- list(
       v[spinss],
       v[!spinss]
     ) 
-  } else {
-    l <- list(v) 
-  }
+  } 
+
   names(l) <- case_labs
   l
 } 

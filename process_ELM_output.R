@@ -4,7 +4,7 @@
 #
 # AWalker
 # April 2021
-# Updated by Bharat Sharma with ensemble postprocessing (May 2024)
+# BSharma (update,  May 2024)
 #
 ##############################
 
@@ -12,7 +12,6 @@ rm(list=ls())
 
 library(parallel)
 library(ncdf4)
-# library(optparse) - could be used for python-like option parsing
 
 
 
@@ -22,7 +21,7 @@ library(ncdf4)
 ##################################
 # command line options and defaults
 
-# any one of the below variables to line 77 or so can be specified as a command line argument by following the call to this script with a character string
+# any one of the below variables to line 100 or so can be specified as a command line argument by following the call to this script with a character string
 # each argument string (separated by a space) is parsed and interpreted individually as R code.
 
 #       Rscript process_ELM_output.R "object1<-value1" "object2<-value2"
@@ -46,8 +45,10 @@ sites           <- 'US-DUK'
 #cases           <- c('I1850CLM45ED_ad_spinup', 'I1850CLM45ED', 'I20TRCLM45ED' )
 cases           <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES' )
 case_labs       <- c('spins', 'trans' )
-# either NULL or an integer number of ensemble members
+# either NULL or an integer number of ensemble members, NULL means no ensemble
 uq              <- NULL
+# the id number member in a UQ ensemble
+uq_index        <- NULL
 # model name in output files
 mod             <- 'elm'
 # start date and time of output files
@@ -55,10 +56,6 @@ mod             <- 'elm'
 fstart_datetime <- '-01-01-00000'
 # netcdf dimensions that contain character variables, can be a vector
 char_dims       <- 'string_length'
-# the number of members in a UQ ensemble, NULL means no ensemble
-uq_ensemblen    <- NULL
-# the id number member in a UQ ensemble, NULL means no ensemble
-uq_index        <- NULL
 
 # time variables
 # - syear, years, & tsteps vectors are the same extent as cases and elements correspond
@@ -69,6 +66,8 @@ syear           <- c(1, 1, 1850 )
 years           <- c(60, 60, 145 )
 # output timesteps per year of each case
 tsteps          <- c(1, 1, 365 )
+# number of years in each output file
+fout_nyears     <- c(1, 1, 1 )
 # number for history file
 hist            <- 0
 days_in_m       <- c(31,28,31,30,31,30,31,31,30,31,30,31)
@@ -77,8 +76,6 @@ time_vars       <- c('mcdate', 'mcsec', 'mdcur', 'mscur', 'nstep',
 # start date and time of output files
 # - currently only this one is supported, anything other then output files covering integer years requires development
 fstart_datetime <- '-01-01-00000'
-# number of years in each output file
-fout_nyears     <- 1
 # missing value for new netcdf file
 missval         <- 1.e36
 
@@ -94,9 +91,9 @@ call_plot          <- T    # call plotting script
 plot_only          <- F    # only call plotting or concatenation script if their switches are true, do not process data
 highfreq_plots     <- F    # plot high-frequency plots where sub-annual data available
 png                <- F    # convert pdf plots into png images to reduce size
-concatenate_caseid <- F # concatenate RDS files for all runs in caseidprefix vector
-concatenate_uq     <- F # concatenate RDS files for all runs in a UQ ensemble
-concatenate_daily  <- F # concatenate only RDS annual files
+concatenate_caseid <- F    # concatenate RDS files for all runs in caseidprefix vector
+concatenate_uq     <- F    # concatenate RDS files for all runs in a UQ ensemble
+concatenate_daily  <- F    # concatenate only RDS annual files
 
 
 
@@ -123,22 +120,42 @@ source('functions_processing.R')
 #######################################
 wd_src <- getwd()
 
-# separate spins from transient
-spinss <- grepl('1850', cases )
-cases  <- breakout_cases(cases, spinss, case_labs )
-syear  <- breakout_cases(syear, spinss, case_labs )
-years  <- breakout_cases(years, spinss, case_labs )
-tsteps <- breakout_cases(tsteps, spinss, case_labs )
-print(cases,quote=F)
+length_inv <- c(length(cases), length(syear), length(years), length(tsteps), length(fout_nyears))
+if((sum(length_inv)%%length(cases)) != 0 | 
+   (length(cases)==1 & sum(length_inv)!=5) 
+  ) {
+  print('ERROR:: input vectors not of same length')
+  print(paste('cases length: ', length(cases) )) 
+  print(paste('syear length: ',  length(syear) )) 
+  print(paste('years length: ', length(years) )) 
+  print(paste('tsteps length: ', length(tsteps) )) 
+  print(paste('fout_nyears length: ', length(fout_nyears) ))
+  stop('fix input and try again.')
+} 
 
-# number of iterations for UQ loop
+# separate spins from transient cases
+spinss      <- grepl('1850', cases )
+cases       <- breakout_cases(cases, spinss, case_labs )
+syear       <- breakout_cases(syear, spinss, case_labs )
+years       <- breakout_cases(years, spinss, case_labs )
+tsteps      <- breakout_cases(tsteps, spinss, case_labs )
+fout_nyears <- breakout_cases(fout_nyears, spinss, case_labs )
+#print(cases,quote=F)
+
+# Can run the ensembles in a serial loop here or in parallel from an external call script  
 nuq <- if(is.null(uq)) 1 else  uq
+nuq <- if(is.null(uq_index)) 1:nuq else  uq_index
+if(!is.null(uq_index) & concatenate_uq) {
+  print('Concatenate UQ ensemble selected but a single ensemble member id (uq_index) also passed,', quote=F) 
+  print('    set concatenate_uq to FALSE.', quote=F)
+  concatenate_uq <- F 
+} 
 
 
 if(!plot_only) {
 
-print('',quote=F)
-print('Processing cases in model output directory:',quote=F)
+print('',quote=F); print('',quote=F); print('',quote=F); print('',quote=F)
+print('Processing runs in model output directory:',quote=F)
 print(wd_mod_out,quote=F)
 
 # caseidprefix loop
@@ -153,10 +170,11 @@ for(cid in 1:length(caseidprefix)) {
   if(!file.exists(wd_out)) dir.create(wd_out)
 
   print('',quote=F)
+  print('Postprocessing output directory:',quote=F)
+  print(wd_out,quote=F)
+  print('',quote=F)
   print('Caseidprefix:',quote=F)
   print(caseidprefix[cid],quote=F)
-  print('output directory:',quote=F)
-  print(wd_out,quote=F)
   print('',quote=F)
 
 
@@ -164,54 +182,49 @@ for(cid in 1:length(caseidprefix)) {
   for(c in 1:length(cases)) {
     setwd(wd_mod_out)
 
-    cases_current   <- cases[[c]]
-    syear_current   <- syear[[c]]
-    years_current   <- years[[c]]
-    tsteps_current  <- tsteps[[c]]
-    ntsteps_current <- sum(years_current * tsteps_current)
+    # extract info for simulations to be combined
+    cases_current       <- cases[[c]]
+    syear_current       <- syear[[c]]
+    years_current       <- years[[c]]
+    tsteps_current      <- tsteps[[c]]
+    fout_nyears_current <- fout_nyears[[c]]
+    ntsteps_current     <- sum(years_current * tsteps_current)
+    #if(names(years)[c]=='spins' & fout_nyears_current[1]>1) ntsteps_current <- ntsteps_current + 1 
 
     # combine sim variables to get all simulations to be put in a single file
     sims <- apply(as.matrix(expand.grid(caseidprefix[cid],sites,cases_current)), 1, paste, collapse='_' )
-    print('',quote=F);print('',quote=F);print('',quote=F)
+    print('',quote=F)
     print('Processing (& concatenating) case(s):',quote=F)
     print(sims,quote=F)
-
-    # UQ Input arguments
-    # Ensemble Processing Update:
-    # Aim: to run the ensembles in parallel (compared to a for loop)
-    # Additional requirement: you need to pass additional arguments `uq_index` and `uq`...
-    # ... `uq_index` is the index/id of the ensemble member
-    # ... `uq` is the number of ensembles
-    u <- if(nuq == 1) 1 else uq_index
-    print (paste('uq_index:', uq_index),quote=F)
-
-
-    if(u>=0){
-      # the above 'u' will replace former 'u' of the loop
-      s <- 1
+    print(cases_current,quote=F)
+    print(syear_current,quote=F)
+    print(years_current,quote=F)
+    print(tsteps_current,quote=F)
+    print(fout_nyears_current,quote=F)
+  
+    # UQ/Ensemble loop 
+    for(u in nuq) {
+      print('',quote=F);print('',quote=F);print('',quote=F)
+      if(!is.null(uq)) print(paste('Processing uq member:',u), quote=F )
+      
       # simulations loop
       # - sims simulations will end up in the same nc and RDS file
       for(s in 1:length(sims)) {
 
-        wd_mod_out_sim <- if(is.null(uq)) {
+        wd_mod_out_sim <- 
+          if(is.null(uq)) {
             paste(wd_mod_out,sims[s],'run', sep='/' )
           } else {
             uq_member <- paste0('g',formatC(u,width=5,flag=0))
             paste(wd_mod_out,'UQ',sims[s],uq_member, sep='/' )
-            print ('Model Output at:')
-            print (paste(wd_mod_out,'UQ',sims[s],uq_member, sep='/' ))
           }
+
         setwd(wd_mod_out_sim)
-
-        print('',quote=F)
-        print('Processing case:',quote=F)
-        print(sims[s],quote=F)
-        if(!is.null(uq)) print(paste('  ','uq member:',uq_member), quote=F )
-        print (sims)
-
         if(sims[s]==sims[1]) {
           print('',quote=F)
           print('Setting up new netcdf file ... ',quote=F)
+          print('  based on initial output file in:',quote=F)
+          print(paste('  ',wd_mod_out_sim),quote=F)
 
           fdate      <- paste0(formatC(syear_current[1], width=4, format="d", flag="0"), fstart_datetime )
           ifile      <- paste(sims[s],mod,paste0('h',hist),fdate,'nc',sep='.')
@@ -219,9 +232,6 @@ for(cid in 1:length(caseidprefix)) {
           vdims_list <- lapply(ncdf1$var, function(l) sapply(l$dim, function(l) l$name ) )
           vdims_len  <- lapply(ncdf1$var, function(l) sapply(l$dim, function(l) l$len ) )
           vars_units <- lapply(ncdf1$var, function(l) l$units )
-
-          print (fdate)
-          print (ifile)
 
           # redefine existing dimensions
           # - to include all output timesteps
@@ -243,8 +253,8 @@ for(cid in 1:length(caseidprefix)) {
           setwd(wd_out)
           new_fname <- paste(caseidprefix[cid],sites,names(cases)[c],sep='_')
           if(!is.null(uq)) new_fname <- paste(new_fname,uq_member,sep='_')
-          print(new_fname,quote=F)
-          print(ntsteps_current,quote=F)
+          print(paste('  file:',new_fname),quote=F)
+          print(paste('  time steps in new file:',ntsteps_current),quote=F)
           newnc     <- nc_create(paste0(new_fname,'.nc'), newvars )
           tend_prev <- tcaug <- 0
           setwd(wd_mod_out_sim)
@@ -280,18 +290,30 @@ for(cid in 1:length(caseidprefix)) {
         # join history files along redefined dimensions
         ##############################################
 
+        print('',quote=F)
+        print('',quote=F)
+        print('',quote=F)
+        print('Processing case:',quote=F)
+        print(sims[s],quote=F)
+        print('',quote=F)
+        print('Model output at:',quote=F)
+        print(wd_mod_out_sim,quote=F)
+
         # output file years
-        # - if not every year ELM/FATES will miss the final years of ouput if years_current does not divide exactly by fout_nyears
         if(names(years)[c]=='spins') {
-          # the + read_final_year here means yr 1 is not read as for a spin that shows the initialisation values
           read_final_year   <- if(tsteps_current[s]==1) 1 else 0
-          year_range        <- syear_current[s]:years_current[s] + read_final_year
-          #year_range <- seq(syear_current[s], years_current[s], fout_nyears )
+          if(fout_nyears_current[s]>1) {
+            year_range <- seq(syear_current[s], years_current[s], fout_nyears_current[s] )
+            #if(cases_current[s]==cases_current[1]) year_range <- c(year_range, years_current[s]+read_final_year )  
+            year_range <- c(year_range, years_current[s]+read_final_year )  
+          } else {
+            # the + read_final_year here means yr 1 is not read, because for a spin that shows the initialisation values
+            year_range <- syear_current[s]:years_current[s] + read_final_year
+          }
           timecount_augment <- tcaug
         } else {
-          year_range        <- syear_current[s]:(syear_current[s] + years_current[s] - 1)
-          #year_range <- seq(syear_current[s], (syear_current[s] + years_current[s] - 1), fout_nyears )
-          timecount_augment  <- 0
+          year_range   <- syear_current[s]:(syear_current[s] + years_current[s] - 1)
+          timecount_augment <- 0
         }
 
 
@@ -299,56 +321,104 @@ for(cid in 1:length(caseidprefix)) {
         # can multicore this loop but requires OOP or other method
         print('',quote=F)
         print('Reading data and adding to new netcdf file ... ',quote=F)
-        print(year_range,quote=F)
-        print('',quote=F)
+        print(paste('  model output file years to read:'),quote=F)
+        print(paste(year_range),quote=F)
         print('',quote=F)
         for(y in year_range) {
           fdate <- paste0(formatC(y, width=4, format="d", flag="0"), fstart_datetime )
           ifile <- paste(sims[s], mod, paste0('h',hist), fdate, 'nc', sep='.' )
 
           # time counting variables
+          # - time steps in input file
+          tsteps_in_file <- tsteps_current[s] * fout_nyears_current[s]
+          if(y==(years_current[s]+1)) tsteps_in_file <- 1
+          # - time data in input file start for output file 
           if(names(years)[c]=='spins' & tsteps_current[s]==1) {
             tstart <- y-1
+            if(fout_nyears_current[s]>1) {
+              #if(cases_current[s]!=cases_current[1]) tsteps_in_file <- tsteps_in_file + 1
+              tstart <- 1
+            }
           } else {
             tstart <- (y-year_range[1]) * tsteps_current[s] + 1
           }
-          tstart   <- tstart + tend_prev
-          #print(tstart)
-          #print(tsteps_current[s])
-          #print(timecount_augment)
-          #tstart <- 1
+          tstart <- tstart + tend_prev
 
+          print('',quote=F)
+          print(paste('  attempting to read file:',ifile), quote=F )
           if(file.exists(ifile)) {
             ncdf2 <- nc_open(ifile)
-            print(paste('  ',ifile,'open.'), quote=F )
+            print(paste('  file open'), quote=F )
 
             # add time dim value
             timevals <- ncvar_get(ncdf2, 'time' )
             #print(timevals)
-            ncvar_put(newnc, 'time', timevals + timecount_augment, tstart, tsteps_current[s] )
+            print(paste('  number of time values in file:',length(timevals)), quote=F)
+            # in the second spin with fout_nyears > 1 the first value is at t=0 and needs to be dropped
+            tcount   <- tsteps_in_file 
+            if(fout_nyears_current[s]>1 & y==1 ) {
+              #if(cases_current[s]!=cases_current[1]) {
+                tcount   <- tcount - 1
+                timevals <- timevals[-1]
+              #}
+            }
+            print(paste('  write time values in output file starting at:',tstart), quote=F)
+            print(paste('  number of time values to write to output file:',tcount), quote=F)
+            ncvar_put(newnc, 'time', timevals + timecount_augment, tstart, tcount )
+            print(paste('  time values written'), quote=F )
           } else {
-            print(paste('  ',ifile,'does not exist.'), quote=F )
+            print(paste('  file does not exist.'), quote=F )
           }
 
           # add var values
+          # APW :: currently excludes non-time dimensioned variables
+          pv <- 1
           for(v in vnames) {
             if(any(vdims_list[[v]]=='time')) {
-              # netcdf start and count arguments
-              start <- rep(1, length(vdims_list[[v]]) )
-              start[which(vdims_list[[v]]=='time')] <- tstart
-              count <- vdims_len[[v]]
-              count[which(vdims_list[[v]]=='time')] <- tsteps_current[s]
-
-#              if(v=='FATES_GPP' | !file.exists(ifile)) {
-#                print(vdims_len[[v]])
-#                print(which(vdims_list[[v]]=='time'))
-#                print(tsteps_current[s])
-#                print(c(start,count))
-#                print(vals)
-#              }
+              # netcdf start and count arguments for output file
+              td        <- which(vdims_list[[v]]=='time')
+              vdl       <- vdims_len[[v]]
+              vdl[td]   <- tsteps_in_file 
+              count     <- vdl
+              start     <- rep(1, length(vdl) )
+              start[td] <- tstart
 
               # get values and paste them
-              vals <- if(file.exists(ifile)) ncvar_get(ncdf2, v ) else rep(missval, prod(count) )
+              vals <- if(file.exists(ifile)) ncvar_get(ncdf2, v, collapse_degen=F ) else rep(missval, prod(count) )
+
+              # for spins with fout_nyears > 1 the first value is at t=0 and needs to be dropped for the second spin
+              # drop the first element of the time dimension as it is at t=0 
+              if(fout_nyears_current[s]>1 & y==1) {
+                #if(cases_current[s]!=cases_current[1]) {
+                   
+                  # create a subset matrix to remove the first element of the time dimension
+                  # -- create a list of dimension elements (sl), remove first element from time dim, 
+                  # -- create a subset matrix from list (sm), reduce time dim by one in count vector    
+                  sl        <- lapply(1:length(vdl), function(i, ad ) 1:ad[i], ad=vdl  )
+                  sl[[td]]  <- 2:vdl[td] 
+                  sm        <- as.matrix(expand.grid(sl)) 
+                  count[td] <- tcount
+                    
+                  # subset vals array with sm and reconfigure to an array of extent - 1 in the time dimension
+                  if(F) {
+                  #if(v=='FATES_GPP') {
+                    print('')
+                    print('vals subsetting to remove first time element')
+                    print(dim(vals))
+                    print(vdl)
+                    print(sl) 
+                    print(sm) 
+                    print(array(vals[sm], count )) 
+                  }
+                  vals       <- array(vals[sm], count )
+                #}
+              }
+              if(pv<5) {
+                print(paste('  write values in output file starting at:', paste(start, collapse=' ' )), quote=F)
+                print(paste('  number of values to write to output file:', paste(count, collapse=' ' )), quote=F)
+                print(paste('  dimension extents of values array:', paste(dim(vals), collapse=' ' )), quote=F)
+                pv <- pv + 1 
+              } 
               ncvar_put(newnc, v, vals, start, count )
 #                ncvar_put(newnc, v, ncvar_get(ncdf2, v ), start, count )
 #              } else {
@@ -356,13 +426,17 @@ for(cid in 1:length(caseidprefix)) {
 #              }
             }
           }
+          print(paste('  all data values written'), quote=F )
+          if(fout_nyears_current[s]>1) tend_prev <- tend_prev + tcount 
         }
         print('done.',quote=F)
 
-
-        tend_prev <- tend_prev + years_current[s]*tsteps_current[s]
-        tcaug     <- timevals[length(timevals)]
+        # increment counter for last timestep added to new file
+        # APW :: not sure if this will behave correctly if fout_nyears > 1 and tsteps > 1, using the tcount variable above should work maybe 
+        if(fout_nyears_current[s]==1) tend_prev <- tend_prev + years_current[s]*tsteps_in_file
+        tcaug <- timevals[length(timevals)]
         setwd(wd_mod_out)
+
       # sim loop
       }
 
@@ -407,7 +481,7 @@ for(cid in 1:length(caseidprefix)) {
       nc_close(newnc)
       # zip nc file
       setwd(wd_out)
-      if(zip) system(paste('gzip ', paste0(new_fname,'.nc') ))
+      if(zip) system(paste('gzip -f ', paste0(new_fname,'.nc') ))
 
 
       # Create annual data from daily data if requested
@@ -495,6 +569,12 @@ if(concatenate_caseid | concatenate_uq) {
   setwd(wd_src)
   source('concatenate_ELM.R', local=T )
 }
+
+
+print('',quote=F)
+print('',quote=F)
+print('Full postprocessing script done.',quote=F)
+print('',quote=F)
 
 
 

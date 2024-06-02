@@ -13,7 +13,7 @@ library(png)
 
 # plot a set of timeseries from a 3D array
 plot_3dim <- function(a3d=algtime, vvars=c('GPP','NPP','AR'), xdim='time',
-                      vcol=NULL, leg_cols=3, print2screen=T, ... ) {
+                      vcol=NULL, leg_cols=2, print2screen=T, ... ) {
   lv <- length(vvars)
   lx <- dim(a3d)[xdim]
   if(is.null(vcol)) vcol <- viridis(lv)
@@ -96,7 +96,8 @@ plot_3dim_combvars <- function(a3d=algtime, vvars=c('GPP'), sum_vars=c('NPP','AR
                                div_sumvars=NULL,
                                div_prodvars=NULL,
                                div_zero=1e-2,
-                               xdim='time', vcol=NULL, leg_cols=3, print2screen=T,
+                               xdim='time', vcol=NULL, 
+                               leg_cols=2, print2screen=T,
                                days=1, ... ) {
 
   lv <- length(vvars) + !is.null(sum_vars)
@@ -256,7 +257,7 @@ plotlist_png <- function(plotlist, fname='plotlist_png.pdf', ... ) {
   setwd('plots')
 
   # plot as png's
-  png('list-test%03d.png', width=960, height=720 )
+  png('list-test%03d.png', width=960, height=480 )
   #eval(plotlist)
   lapply(plotlist, print )
   dev.off()

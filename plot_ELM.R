@@ -7,7 +7,9 @@
 #
 ##############################
 
-# rm(list=ls())
+
+# Script to plot ELM-FATES output
+# Designed to be called from ELMpostprocessr.R 
 
 library(lattice)
 library(grid)
@@ -40,10 +42,13 @@ if(exists('call_plot')) {
   caseidprefix   <- 'FACEconly_exptest_vcmax70'
   sites          <- 'US-DUK'
   case_labs      <- c('spins', 'trans' )
+  cases          <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES' )
   highfreq_plots <- F
 
   # either NULL or an integer number of ensemble members
   uq             <- NULL
+  # to parallelize the plotting function externally, `uq_index` can be passed via command line 
+  uq_index       <- NULL
 
   ##################################
   # parse command line arguments
@@ -57,13 +62,20 @@ if(exists('call_plot')) {
       eval(parse(text=commandArgs(T)[ca]))
     }
   }
+
+  # check cases 
+  spinss      <- grepl('1850', cases )
+  cases       <- breakout_cases(cases, spinss, case_labs )
+
+  # calculate uq/ensemble indexing 
+  nuq <- if(is.null(uq)) 1 else  uq
+  nuq <- if(is.null(uq_index)) 1:nuq else  uq_index
 }
 
 
 
 #######################################
 # Initialise
-
 
 # Functions
 source('functions_plotting.R')
@@ -72,11 +84,7 @@ source('functions_plotting.R')
 # plotting lists
 source('info_plotting_fatesoutv2.R')
 
-nuq <- if(is.null(uq)) 1 else  uq
-# command line argument uq_index to parallelize the
-if(nuq>1){
-  print(paste('Plotting for ensemble index : ',uq_index,'/', nuq))
-}
+
 
 #############################################
 # open RDS lists of arrays
@@ -92,22 +100,25 @@ if(is.null(wd_out_plots)) {
 print('  to figure directory:',quote=F)
 print(wd_out_plots,quote=F)
 
-# to parallelize the plotting function, `uq_index` should be passed via command line ...
-u <- if(nuq == 1) 1 else uq_index
-print(nuq)
 
-for(c in 1:length(case_labs)) {
+for(c in 1:length(names(cases))) {
 
+  # UQ/Ensemble loop 
+  # - can run the ensembles in a serial loop here or in parallel  
+  for(u in nuq) {
+  
   fname   <- paste(caseidprefix,sites,case_labs[c],sep='_')
   fname_a <- paste0(fname,'_annual.RDS')
 
   # overwriting the fname and fname_a if running UQ ensembles
-  if(nuq>1){
+  if(!is.null(uq)) {
+    print('',quote=F); print('',quote=F); print('',quote=F)
+    print(paste('Plotting for ensemble index : ', u, ' / ', uq ))
     fname     <- paste(caseidprefix,sites,case_labs[c],sep='_')
     uq_member <- paste0('g',formatC(u,width=5,flag=0))
     fname     <- paste0(fname,'_',uq_member)
     fname_a   <- paste0(fname,'_',uq_member,'_annual.RDS')
-    }
+  }
 
   if(file.exists(fname_a)) {
     l1    <- readRDS(fname_a)
@@ -178,7 +189,7 @@ for(c in 1:length(case_labs)) {
     }
   }
 }
-
+}
 
 
 ### END ###

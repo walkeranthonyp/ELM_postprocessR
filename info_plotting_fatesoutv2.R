@@ -41,10 +41,10 @@ plotlist <- list(
   p0.6 = list(
     vvars = c('FATES_HET_RESP','FATES_MAINT_RESP','FATES_GROWTH_RESP','FATES_AUTORESP','FATES_EXCESS_RESP'),
     ylab  = expression('C Flux [gC '*m^-2*' timestep'^-1*']')
-  ),
-  p0.7 = list(
-    vvars = c('FATES_L2FR'),
-    ylab  = expression('leaf to fineroot biomass multiplier for target allometry ['*kg*kg^-1*']')
+#  ),
+#  p0.7 = list(
+#    vvars = c('FATES_L2FR'),
+#    ylab  = expression('leaf to fineroot biomass multiplier for target allometry ['*kg*kg^-1*']')
   ),
   p1 = list(
     vvars = c('FATES_CROOT_ALLOC','FATES_FROOT_ALLOC','FATES_LEAF_ALLOC','FATES_SEED_ALLOC','FATES_STEM_ALLOC','FATES_STORE_ALLOC'),
@@ -77,11 +77,11 @@ plotlist <- list(
   p7 = list(
     vvars = c('FATES_PROMOTION_CARBONFLUX','FATES_DEMOTION_CARBONFLUX','FATES_MORTALITY_CFLUX_CANOPY','FATES_MORTALITY_CFLUX_USTORY'),
     ylab  = expression('C Flux [gC '*m^-2*' timestep'^-1*']')
-  ),
-  p8 = list(
-    vvars = c('FATES_DISTURBANCE_RATE_FIRE','FATES_DISTURBANCE_RATE_LOGGING','FATES_DISTURBANCE_RATE_P2P','FATES_DISTURBANCE_RATE_P2S',
-              'FATES_DISTURBANCE_RATE_POTENTIAL','FATES_DISTURBANCE_RATE_S2S','FATES_DISTURBANCE_RATE_TREEFALL'),
-    ylab  = 'Fraction of ground area disturbed [0-1]'
+#  ),
+#  p8 = list(
+#    vvars = c('FATES_DISTURBANCE_RATE_FIRE','FATES_DISTURBANCE_RATE_LOGGING','FATES_DISTURBANCE_RATE_P2P','FATES_DISTURBANCE_RATE_P2S',
+#              'FATES_DISTURBANCE_RATE_POTENTIAL','FATES_DISTURBANCE_RATE_S2S','FATES_DISTURBANCE_RATE_TREEFALL'),
+#    ylab  = 'Fraction of ground area disturbed [0-1]'
   ),
   p9 = list(
     vvars = c('FATES_NCOHORTS','FATES_NPATCHES'),
@@ -121,11 +121,11 @@ plotlist_nutrients <- list(
     ylab  = expression('C Pool [gC '*m^-2*']')
   ),
   p2 = list(
-    vvars = c('FATES_VEGN','FATES_SAPWOODN','FATES_LEAFN','FATES_FROOTN'),#'SOILN'),
+    vvars = c('FATES_VEGN','FATES_SAPWOODN','FATES_LEAFN','FATES_FROOTN'),# 'SOILN'),
     ylab  = expression('N Pool [gN '*m^-2*']')
   ),
   p3 = list(
-    vvars = c('FATES_VEGP','FATES_SAPWOODP','FATES_LEAFP','FATES_FROOTP'),#'SOILP'),
+    vvars = c('FATES_VEGP','FATES_SAPWOODP','FATES_LEAFP','FATES_FROOTP'),# 'SOILP'),
     ylab  = expression('P Pool [gP '*m^-2*']')
   ),
   p4 = list(
@@ -160,10 +160,10 @@ plotlist_nutrients <- list(
   px.3 = list(
     vvars = c('FATES_STOREC_TF','FATES_STOREN_TF','FATES_STOREP_TF'),
     ylab  = expression('C/N/P Store Target [g '*m^-2*']')
-  ),
-  px.4 = list(
-    vvars = c('FATES_L2FR'),
-    ylab  = expression('leaf to fineroot biomass multiplier for target allometry ['*kg*kg^-1*']')
+#  ),
+#  px.4 = list(
+#    vvars = c('FATES_L2FR'),
+#    ylab  = expression('leaf to fineroot biomass multiplier for target allometry ['*kg*kg^-1*']')
   )
 )
 

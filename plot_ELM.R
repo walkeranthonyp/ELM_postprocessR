@@ -127,10 +127,16 @@ for(c in 1:length(names(cases))) {
   }
 
   # extract data
-  algtime     <- l1$data_arrays$`lndgrid,time`
-  alglgtime   <- l1$data_arrays$`lndgrid,levgrnd,time`
-  algpfttime  <- l1$data_arrays$`lndgrid,fates_levpft,time`
-  algsclstime <- l1$data_arrays$`lndgrid,fates_levscls,time`
+  # site and time dimensioned variables
+  algtime      <- l1$data_arrays$`lndgrid,time`
+  # site, ground levels, and time dimensioned variables
+  alglgtime    <- l1$data_arrays$`lndgrid,levgrnd,time`
+  # site, pft, and time dimensioned variables
+  algpfttime   <- l1$data_arrays$`lndgrid,fates_levpft,time`
+  # site, size class, and time dimensioned variables
+  algsclstime  <- l1$data_arrays$`lndgrid,fates_levscls,time`
+  # site, cohort age class, and time dimensioned variables
+  algcaclstime <- l1$data_arrays$`lndgrid,fates_levcacls,time`
 
   # plot required figures
   plots <- make_figures(algtime, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]] )
@@ -166,12 +172,12 @@ for(c in 1:length(names(cases))) {
       vcl <- if(i==1) vc else c(vcl,vc)
     }
 
-    plots <- make_figures(algsclstime, plotlist=plotlist_size_class, xlab=case_xlabs[case_labs[c]],
+    plots <- make_figures(algsclstime, a3d2=algcaclstime, plotlist=plotlist_size_class, xlab=case_xlabs[case_labs[c]],
                           timestep=case_timestep[case_labs[c]], glab=vcl )
     plot_figures(plots, paste0(fname,'_size_class','.pdf'), png=png )
   }
 
-  # extract & plot annual data
+  # extract & plot daily data
   if(file.exists(fname_a) & highfreq_plots) {
     l2 <- readRDS(paste0(fname,'.RDS'))
     algtime_highfreq   <- l2$data_arrays$`lndgrid,time`

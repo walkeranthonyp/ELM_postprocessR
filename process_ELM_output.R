@@ -47,8 +47,10 @@ cases           <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES'
 case_labs       <- c('spins', 'trans' )
 # either NULL or an integer number of ensemble members, NULL means no ensemble
 uq              <- NULL
-# the id number member in a UQ ensemble
+# the id number for a member in a UQ ensemble to process
 uq_index        <- NULL
+# the id number(s) of members in a UQ ensemble to exclude (e.g. failed to run)
+uq_exclude      <- NULL
 # model name in output files
 mod             <- 'elm'
 # start date and time of output files
@@ -143,8 +145,11 @@ fout_nyears <- breakout_cases(fout_nyears, spinss, case_labs )
 #print(cases,quote=F)
 
 # Can run the ensembles in a serial loop here or in parallel from an external call script  
-nuq <- if(is.null(uq)) 1 else  uq
-nuq <- if(is.null(uq_index)) 1:nuq else  uq_index
+nuq <- if(is.null(uq)) 1 else uq
+if(!is.null(uq)) {
+  nuq <- if(is.null(uq_index)) 1:nuq else uq_index
+  if(!is.null(uq_exclude)) nuq <- nuq[-uq_exclude] 
+}
 if(!is.null(uq_index) & concatenate_uq) {
   print('Concatenate UQ ensemble selected but a single ensemble member id (uq_index) also passed,', quote=F) 
   print('    set concatenate_uq to FALSE.', quote=F)
@@ -203,6 +208,8 @@ for(cid in 1:length(caseidprefix)) {
     print(fout_nyears_current,quote=F)
   
     # UQ/Ensemble loop 
+    print('nuq')
+    print(nuq) 
     for(u in nuq) {
       print('',quote=F);print('',quote=F);print('',quote=F)
       if(!is.null(uq)) print(paste('Processing uq member:',u), quote=F )
@@ -219,6 +226,9 @@ for(cid in 1:length(caseidprefix)) {
             paste(wd_mod_out,'UQ',sims[s],uq_member, sep='/' )
           }
 
+        print('',quote=F)
+        print('',quote=F)
+        print(paste('  ',wd_mod_out_sim),quote=F)
         setwd(wd_mod_out_sim)
         if(sims[s]==sims[1]) {
           print('',quote=F)

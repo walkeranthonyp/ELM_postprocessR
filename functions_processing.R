@@ -10,6 +10,25 @@
 
 
 ##############################
+# separates spins and transient cases into a list of sets of cases to concatenate
+# -- i.e. each list element contains a vector of spins or transient cases to concatenate
+breakout_cases <- function(v, spinss, case_labs ) {
+  l <- list(v) 
+  if(sum(spinss)==length(spinss)) {
+    case_labs <- 'spins'
+  } else if(any(spinss)) {
+    l <- list(
+      v[spinss],
+      v[!spinss]
+    ) 
+  } 
+
+  names(l) <- case_labs
+  l
+} 
+
+
+##############################
 # conversion functions 
 
 conv_sh_to_rh <- function(q, t, p=101325 ) {
@@ -130,24 +149,7 @@ time_conv <- list(
 )
 
 
-# separates spins and transient cases into a list of sets of cases to concatenate
-# -- i.e. each list element contains a vector of spins or transient cases to concatenate
-breakout_cases <- function(v, spinss, case_labs ) {
-  l <- list(v) 
-  if(sum(spinss)==length(spinss)) {
-    case_labs <- 'spins'
-  } else if(any(spinss)) {
-    l <- list(
-      v[spinss],
-      v[!spinss]
-    ) 
-  } 
-
-  names(l) <- case_labs
-  l
-} 
-
-
+##############################
 # this summarises an array and preserves names/labelling
 # - default takes a single time dimension and summarises by a certain number of timesteps
 summarize_array <- function(a1, summarise_dim='time', extent=365, scale=NULL, func=mean ) {

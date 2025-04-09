@@ -63,7 +63,8 @@ for(cid in 1:length(caseidprefix)) {
 
 
     # add data to expanded data array 
-    for(u in 2:uq) {
+    #for(u in 2:uq) {
+    for(u in nuq[-1]) {
       print(new_fname[u],quote=F)
       setwd(wd_out)
       l1 <- readRDS(new_fname[u])

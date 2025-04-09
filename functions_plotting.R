@@ -39,7 +39,7 @@ plot_stack <- function(a3d=algtime,
                        norm=F, xdim='time', ylabi, xlabi, glab=NULL,
                        vcol=NULL, print2screen=T, ... ) {
 
-  pft <- F; scls <- F
+  pft <- F; scls <- F; cacls <- F
   if(any(names(dim(a3d))=='fates_levpft')) {
     pft <- T
     lv  <- dim(a3d)['fates_levpft']
@@ -48,6 +48,10 @@ plot_stack <- function(a3d=algtime,
     scls <- T
     lv   <- dim(a3d)['fates_levscls']
     if(length(vvars)>1) stop('ERROR: plot_stack called with both size class and multiple variables.')
+  } else if(any(names(dim(a3d))=='fates_levcacls')) {
+    cacls <- T
+    lv   <- dim(a3d)['fates_levcacls']
+    if(length(vvars)>1) stop('ERROR: plot_stack called with both cohort age class and multiple variables.')
   } else {
     lv <- length(vvars)
   }
@@ -58,7 +62,7 @@ plot_stack <- function(a3d=algtime,
 
   # stack data
   # - assumes lndgrid is just a single point
-  if(pft|scls) {
+  if(pft|scls|cacls) {
     as   <- t(a3d[,,,vvars])
     tas  <- as.data.frame(as) # assumes a3d is a 2D array
     if(!is.null(glab)) names(tas) <- glab
@@ -89,8 +93,92 @@ plot_stack <- function(a3d=algtime,
 }
 
 
+# create new variables from an arrray  
+calc_newvars <- function(a1,
+                         sum_vars=c('NPP','AR'),
+                         product_vars=NULL,
+                         subtract_vars=NULL,
+                         div_sumvars=NULL,
+                         div_prodvars=NULL,
+                         vvars
+                         ) {
+
+  arrayapply <- function(a2, vars, dimsa2 ) {
+    if(dimsa2==4) {
+      a2 <- a2[,,,vars,drop=F]
+    } else if(dimsa2==3) {
+      a2 <- a2[,,vars,drop=F]
+    }
+  }
+
+  dims     <- length(dim(a1))
+  dimapply <- (dims-1):1
+
+  # averaging / summing
+  sum_vars.scale <- 1
+  if(is.list(sum_vars)) {sum_vars.scale <- sum_vars$scale*1/days; sum_vars <- sum_vars$sum_vars }
+
+  a2      <- arrayapply(a1, sum_vars, dims )
+  asum    <- apply(a2*sum_vars.scale, dimapply, sum )
+  nv_name <- paste0('sum(',paste(sum_vars,collapse=','),')')
+  if(!is.null(product_vars)) {
+    a2      <- arrayapply(a1, product_vars, dims )
+    asum    <- apply(a2, dimapply, prod )
+    nv_name <- paste0('prod(',paste(product_vars,collapse=','),')')
+  }
+  if(!is.null(subtract_vars)) {
+    a2      <- arrayapply(a1, subtract_vars, dims )
+    asub    <- apply(a2, dimapply, sum )
+    asum    <- asum[drop=F] - asub[drop=F]
+    nv_name <- paste0(nv_name,' - sum(',paste(subtract_vars,collapse=','),')')
+  } else if(!is.null(div_sumvars)) {
+    a2      <- arrayapply(a1, div_sumvars, dims )
+    adiv    <- apply(a2, dimapply, sum )
+    adiv[adiv<div_zero] <- NA
+    asum    <- asum[drop=F] / adiv[drop=F]
+    nv_name <- paste0(nv_name,' / sum(',paste(div_sumvars,collapse=','),')')
+  } else if(!is.null(div_prodvars)) {
+    a2      <- arrayapply(a1, div_prodvars, dims )
+    adiv    <- apply(a2, dimapply, prod )
+    adiv[adiv<div_zero] <- NA
+    asum    <- asum[drop=F] / adiv[drop=F]
+    nv_name <- paste0(nv_name,' / prod(',paste(div_prodvars,collapse=','),')')
+  }
+
+
+#  groups <- c(vvars, nv_name  )
+#  if(is.null(vcol))           vcol <- viridis(length(groups))
+#  if(length(groups)<leg_cols) leg_cols <- length(groups)
+
+  all_vars  <- c(vvars, sum_vars, subtract_vars, product_vars, div_sumvars, div_prodvars )
+  #dummy_var <- if(!('FATES_TRIMMING'%in%vvars)) 'FATES_TRIMMING' else 'FATES_CROOT_ALLOC'
+  dummy_var <- 'none' 
+  i <- 1
+  while(dummy_var=='none' | i<100 ) {
+    if(!dimnames(a1)[[dims]][i]%in%all_vars) dummy_var <- dimnames(a1)[[dims]][i]
+    i <- i + 1 
+  }
+ 
+  groups    <- c(vvars, nv_name  )
+  if(dims==3) {
+    a1[,,dummy_var]  <- asum[,]
+    dimnames(a1)[[dims]][which(dimnames(a1)[[dims]]==dummy_var)] <- nv_name
+    a1 <- a1[,,groups]
+  } else if(dims==4) {
+    a1[,,,dummy_var] <- asum[,]
+    dimnames(a1)[[dims]][which(dimnames(a1)[[dims]]==dummy_var)] <- nv_name
+    a1 <- a1[,,,groups]
+  }
+  
+  # APW : needs to either passback name or subsetted array
+  list(a1, nv_name )
+  a1
+}
+
+
 # plot a set of timeseries from a 3D array and allow variables to be combined according to the arguments passed
-plot_3dim_combvars <- function(a3d=algtime, vvars=c('GPP'), sum_vars=c('NPP','AR'),
+plot_3dim_combvars <- function(a3d=algtime, vvars=c('GPP'), 
+                               sum_vars=c('NPP','AR'),
                                product_vars=NULL,
                                subtract_vars=NULL,
                                div_sumvars=NULL,
@@ -188,7 +276,7 @@ check_vars <-  function(ar, vvars, vdim ) {
 # plot set of figures in a single pdf
 # - figures described by a "plotlist" and these can be found in files "input_plotting<>.R"
 # - takes a 3D and a 4D array as inputs
-make_figures <- function(a3d, a4d, plotlist, xlab='Spin-up', timestep='year', print2screen=F, ... ) {
+make_figures <- function(a3d, a4d, a3d2, plotlist, xlab='Spin-up', timestep='year', print2screen=F, ... ) {
 
   lapply(plotlist, function(l) {
 
@@ -207,9 +295,15 @@ make_figures <- function(a3d, a4d, plotlist, xlab='Spin-up', timestep='year', pr
     }
 
     if(!is.null(l$stackplot)) {
-      ld <- length(dim(a3d))
-      check_vars(a3d, l$vvars, ld )
-      plot_stack(a3d, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days, ... )
+      if(any(l$vvars=='FATES_NPLANT_AC')) {
+        ld <- length(dim(a3d2))
+        check_vars(a3d2, l$vvars, ld )
+        plot_stack(a3d2, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days )
+      } else {
+        ld <- length(dim(a3d))
+        check_vars(a3d, l$vvars, ld )
+        plot_stack(a3d, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days, ... )
+      }
 
     } else if(is.null(l$v4d)) {
       if(combvars) {
@@ -253,12 +347,15 @@ plotPNG <- function(png) {
 # - reduces size of vector grahics figures with many components
 plotlist_png <- function(plotlist, fname='plotlist_png.pdf', ... ) {
 
-  if(!file.exists('plots')) dir.create('plots')
-  setwd('plots')
+  # create temporary plotting directory
+  #if(!file.exists('plots')) dir.create('plots')
+  #setwd('plots')
+  wdt <- paste('plots', paste0(sample(letters, 3, T), collapse='' ), sep='_' )
+  dir.create(wdt)
+  setwd(wdt)
 
   # plot as png's
   png('list-test%03d.png', width=960, height=480 )
-  #eval(plotlist)
   lapply(plotlist, print )
   dev.off()
 
@@ -271,6 +368,9 @@ plotlist_png <- function(plotlist, fname='plotlist_png.pdf', ... ) {
   par(mai=c(0,0,0,0))
   dummy <- lapply(plotlist_png, plotPNG )
   dev.off()
+
+  # remove temp plotting dir
+  system(paste('rm -r', wdt ))
 }
 
 

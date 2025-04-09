@@ -30,6 +30,14 @@ plotlist <- list(
     vvars = c('QBOT'),
     ylab  = expression('Air specific huumidity ['*kg*kg^-1*']')
   ),
+  p0.4 = list(
+    vvars = c('WIND'),
+    ylab  = expression('Wind Speed ['*m*s^-1*']')
+  ),
+  p0.4 = list(
+    vvars = c('PCO2'),
+    ylab  = expression('Air '*CO[2]*' concentration [ppm]')
+  ),
   p0 = list(
     vvars = c('FATES_GPP','FATES_NPP','FATES_AUTORESP','FATES_EXCESS_RESP'),
     ylab  = expression('C Flux [gC '*m^-2*' timestep'^-1*']')
@@ -77,12 +85,20 @@ plotlist <- list(
   p7 = list(
     vvars = c('FATES_PROMOTION_CARBONFLUX','FATES_DEMOTION_CARBONFLUX','FATES_MORTALITY_CFLUX_CANOPY','FATES_MORTALITY_CFLUX_USTORY'),
     ylab  = expression('C Flux [gC '*m^-2*' timestep'^-1*']')
-#  ),
+  ),
+  p7.6 = list(
+    vvars = c('MORTALITY_CROWNAREA_CANOPY','MORTALITY_CROWNAREA_UNDERSTORY'),
+    ylab  = expression('Crown area ['*m^2*']')
+  ),
+  p7.5 = list(
+    vvars = c('FATES_CA_WEIGHTED_HEIGHT','FATES_BA_WEIGHTED_HEIGHT'),
+    ylab  = 'Mean canopy height [m]'
+  ),
 #  p8 = list(
 #    vvars = c('FATES_DISTURBANCE_RATE_FIRE','FATES_DISTURBANCE_RATE_LOGGING','FATES_DISTURBANCE_RATE_P2P','FATES_DISTURBANCE_RATE_P2S',
 #              'FATES_DISTURBANCE_RATE_POTENTIAL','FATES_DISTURBANCE_RATE_S2S','FATES_DISTURBANCE_RATE_TREEFALL'),
 #    ylab  = 'Fraction of ground area disturbed [0-1]'
-  ),
+#  ),
   p9 = list(
     vvars = c('FATES_NCOHORTS','FATES_NPATCHES'),
     ylab  = 'FATES diagnostics [#]'
@@ -110,6 +126,14 @@ plotlist <- list(
     norm  = T,
     vvars = c('FATES_STRUCTC','FATES_FROOTC','FATES_LEAFC','FATES_SAPWOODC','FATES_STOREC','FATES_REPROC'),
     ylab  = expression('Veg C Pool [gC '*m^-2*']')
+  ),
+  p3 = list(
+    vvars = 'FATES_UNGERM_SEED_BANK',
+    ylab  = expression('Seed bank [g C '*m^-2*']')
+  ),
+  p3.05 = list(
+    vvars = 'FATES_SEEDLING_POOL',
+    ylab  = expression('Seedling pool [g C '*m^-2*']')
   )
 )
 
@@ -265,9 +289,33 @@ plotlist_pft <- list(
   ),
   p2.1 = list(
     stackplot = T,
+    norm  = F,
+    vvars = 'FATES_CROWNAREA_PF',
+    ylab  = expression('Crown area proportion [-]')
+  ),
+  p2.2 = list(
+    stackplot = T,
+    norm  = F,
+    vvars = 'FATES_CANOPYCROWNAREA_PF',
+    ylab  = expression('Crown area proportion [-]')
+  ),
+  p2.3 = list(
+    stackplot = T,
     norm  = T,
     vvars = 'FATES_CANOPYCROWNAREA_PF',
     ylab  = expression('Crown area proportion [-]')
+  ),
+  p3 = list(
+    stackplot = T,
+    norm  = F,
+    vvars = 'FATES_UNGERM_SEED_BANK_PF',
+    ylab  = expression('Seed bank [g C '*m^-2*']')
+  ),
+  p3.05 = list(
+    stackplot = T,
+    norm  = F,
+    vvars = 'FATES_SEEDLING_POOL_PF',
+    ylab  = expression('Seedling pool [g C '*m^-2*']')
   ),
   p3.1 = list(
     stackplot = T,
@@ -322,6 +370,12 @@ plotlist_size_class <- list(
     vvars = 'FATES_NPLANT_SZ',
     ylab  = expression('Stand Density [# '*m^-2*']')
   ),
+#  p3.1 = list(
+#    stackplot = T,
+#    norm  = F,
+#    vvars = 'FATES_NPLANT_AC',
+#    ylab  = expression('Plant number by age class [# '*m^-2*']')
+#  ),
   p4 = list(
     stackplot = T,
     norm  = F,

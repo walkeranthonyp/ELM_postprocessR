@@ -93,6 +93,7 @@ call_plot          <- T    # call plotting script
 plot_only          <- F    # only call plotting or concatenation script if their switches are true, do not process data
 highfreq_plots     <- F    # plot high-frequency plots where sub-annual data available
 png                <- F    # convert pdf plots into png images to reduce size
+plot_nutrients     <- F    # make nutrient plots (if caseidprefix contains 'NP' 'RD' or 'ECA' will be automatic)
 concatenate_caseid <- F    # concatenate RDS files for all runs in caseidprefix vector
 concatenate_uq     <- F    # concatenate RDS files for all runs in a UQ ensemble
 concatenate_daily  <- F    # concatenate only RDS annual files
@@ -113,8 +114,6 @@ if(length(commandArgs(T))>=1) {
 }
 
 
-# Functions
-source('functions_processing.R')
 
 # source directory
 wd_src <- getwd()
@@ -165,19 +164,22 @@ if(!plot_only) {
   print('Processing runs in model output directory:',quote=F)
   print(wd_mod_out,quote=F)
 
-  setwd(wd_src)
+  setwd(paste0(wd_src,'/functions'))
+  source('functions_processing.R')
+
+  setwd(paste0(wd_src,'/scripts'))
   source('functions_process_netcdf.R', local=T )
 }
 
 
 if(call_plot) {
-  setwd(wd_src)
+  setwd(paste0(wd_src,'/scripts'))
   source('plot_ELM.R', local=T )
 }
 
 
 if(concatenate_caseid | concatenate_uq) {
-  setwd(wd_src)
+  setwd(paste0(wd_src,'/scripts'))
   source('concatenate_ELM.R', local=T )
 }
 

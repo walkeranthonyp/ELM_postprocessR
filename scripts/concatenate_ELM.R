@@ -1,5 +1,4 @@
 
-#if(concatenate_caseid | concatenate_uq) {
 
 
 print('',quote=F)
@@ -87,6 +86,8 @@ for(cid in 1:length(caseidprefix)) {
     print(new_fname_concat,quote=F)
     setwd(wd_out)
     saveRDS(l1, new_fname_concat )
+
+    # can add switch to delete ensemble member RDS's
 
 }}
 

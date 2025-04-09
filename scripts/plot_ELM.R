@@ -9,7 +9,7 @@
 
 
 # Script to plot ELM-FATES output
-# Designed to be called from ELMpostprocessr.R 
+# - designed to be called from main.R but can be run stand alone 
 
 library(lattice)
 library(grid)
@@ -20,7 +20,6 @@ library(viridis)
 wd_out_plots   <- NULL
 case_xlabs     <- c(spins='Spin-up', trans='Transient', aCO2='Ambient CO2', eCO2='Elevated CO2' )
 case_timestep  <- c(spins='year', trans='day', aCO2='day', eCO2='day' )
-plot_nutrients <- F
 
 print('',quote=F);print('',quote=F);print('',quote=F)
 
@@ -33,8 +32,9 @@ if(exists('call_plot')) {
   print('Plotting function called as stand alone.',quote=F)
 
   # paths
-  wd_out       <- '/Volumes/disk2/Research_Projects/FATES/runs/tests/FACEconly_exptest/raw_output/FACEconly_exptest_processed'
-  wd_out       <- '/Volumes/disk2/Research_Projects/FATES/runs/tests/FACEconly_exptest/raw_output/FACEconly_exptest_vcmax70_processed'
+  dw_src <- getwd()
+  wd_out <- '/Volumes/disk2/Research_Projects/FATES/runs/tests/FACEconly_exptest/raw_output/FACEconly_exptest_processed'
+  wd_out <- '/Volumes/disk2/Research_Projects/FATES/runs/tests/FACEconly_exptest/raw_output/FACEconly_exptest_vcmax70_processed'
   # directory where to save output, if NULL same as wd_out
 
   # filename variables
@@ -44,6 +44,7 @@ if(exists('call_plot')) {
   case_labs      <- c('spins', 'trans' )
   cases          <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES' )
   highfreq_plots <- F
+  plot_nutrients <- F    # make nutrient plots (if caseidprefix contains 'NP' 'RD' or 'ECA' will be automatic)
 
   # either NULL or an integer number of ensemble members
   uq             <- NULL
@@ -78,10 +79,12 @@ if(exists('call_plot')) {
 # Initialise
 
 # Functions
+setwd(paste0(wd_src,'/functions'))
 source('functions_plotting.R')
 
 
 # plotting lists
+setwd(paste0(wd_src,'/config'))
 source('info_plotting_fatesoutv2.R')
 
 

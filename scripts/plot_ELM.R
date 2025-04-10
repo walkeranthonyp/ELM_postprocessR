@@ -130,6 +130,8 @@ for(c in 1:length(names(cases))) {
   }
 
   # extract data
+  # all variables
+  all_vars     <- names(l1$variables)
   # site and time dimensioned variables
   algtime      <- l1$data_arrays$`lndgrid,time`
   # site, ground levels, and time dimensioned variables
@@ -141,17 +143,18 @@ for(c in 1:length(names(cases))) {
   # site, cohort age class, and time dimensioned variables
   algcaclstime <- l1$data_arrays$`lndgrid,fates_levcacls,time`
 
+
   # plot required figures
-  plots <- make_figures(algtime, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]] )
+  plots <- make_figures(algtime, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars  )
   plot_figures(plots, paste0(fname,'.pdf'), png=png )
 
-  plots <- make_figures(algtime, alglgtime, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]] )
+  plots <- make_figures(algtime, alglgtime, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
   plot_figures(plots, paste0(fname,'_physiology','.pdf'), png=png )
 
   if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
     print('',quote=F)
     print('PLOTTING NUTRIENTS')
-    plots <- make_figures(algtime, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]] )
+    plots <- make_figures(algtime, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
     plot_figures(plots, paste0(fname,'_nutrients','.pdf'), png=png )
   }
 
@@ -160,7 +163,7 @@ for(c in 1:length(names(cases))) {
     print('PLOTTING PFT')
     vcl   <- paste0('PFT', 1:l1$dimensions['fates_levpft'] )
     plots <- make_figures(algpfttime, plotlist=plotlist_pft, xlab=case_xlabs[case_labs[c]],
-                          timestep=case_timestep[case_labs[c]], glab=vcl )
+                          timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars )
     plot_figures(plots, paste0(fname,'_pft','.pdf'), png=png )
   }
 
@@ -176,7 +179,7 @@ for(c in 1:length(names(cases))) {
     }
 
     plots <- make_figures(algsclstime, a3d2=algcaclstime, plotlist=plotlist_size_class, xlab=case_xlabs[case_labs[c]],
-                          timestep=case_timestep[case_labs[c]], glab=vcl )
+                          timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars   )
     plot_figures(plots, paste0(fname,'_size_class','.pdf'), png=png )
   }
 
@@ -186,14 +189,14 @@ for(c in 1:length(names(cases))) {
     algtime_highfreq   <- l2$data_arrays$`lndgrid,time`
     alglgtime_highfreq <- l2$data_arrays$`lndgrid,levgrnd,time`
 
-    plots <- make_figures(algtime_highfreq, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep='year' )
+    plots <- make_figures(algtime_highfreq, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
     plot_figures(plots, paste0(fname,'_highfreq','.pdf'), png=png )
 
-    plots <- make_figures(algtime, alglgtime_highfreq, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]] )
+    plots <- make_figures(algtime, alglgtime_highfreq, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
     plot_figures(plots, paste0(fname,'_highfreq_physiology','.pdf'), png=png )
 
     if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
-      plots <- make_figures(algtime_highfreq, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep='year' )
+      plots <- make_figures(algtime_highfreq, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
       plot_figures(plots, paste0(fname,'_highfreq_nutrients','.pdf'), png=png )
     }
   }

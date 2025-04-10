@@ -263,13 +263,34 @@ plot_4dim <- function(a4d=alglgtime, vvars=c('H2OSOI'), xdim='time', zdim='levgr
 }
 
 
-# check variables (vvars) exist in a 3D/4D array
-check_vars <-  function(ar, vvars, vdim ) {
-  if(is.list(vvars)) vvars <- vvars[[1]]
-  for(v in vvars) {
-    vexists <- v%in%dimnames(ar)[[vdim]]
-    if(!vexists) stop(paste('ERROR: variable does not exist in dataset:\n', v ))
+## check variables (vvars) exist in a 3D/4D array
+#check_vars <-  function(ar, vvars, vdim ) {
+#  if(is.list(vvars)) vvars <- vvars[[1]]
+#  for(v in vvars) {
+#    vexists <- v%in%dimnames(ar)[[vdim]]
+#    if(!vexists) stop(paste('ERROR: variable does not exist in dataset:\n', v ))
+#  }
+#}
+
+
+# Helper: filter out variables not in dataset
+safe_vvars <- function(vvars, avars, ... ) {
+ 
+  vvislist <- F 
+  if(is.list(vvars)) {
+    vvislist   <- T
+    vvars_list <- vvars
+    vvars      <- vvars[[1]]
   }
+
+  existing <- vvars[vvars %in% avars]
+  missing  <- setdiff(vvars, existing)
+  if (length(missing) > 0) {
+    warning(paste('⚠️ Skipping missing vars:', paste(missing, collapse = ', ')))
+  } else if (vvislist) {
+    existing <- vvars_list
+  }
+  return(existing)
 }
 
 
@@ -282,54 +303,77 @@ make_figures <- function(a3d, a4d, a3d2, plotlist, xlab='Spin-up', timestep='yea
 
     print('',quote=F)
     print('Making figure:',quote=F)
-    print(paste('vars:',paste(l$vvars,collapse=',')),quote=F)
-    combvars <- F
-    if(!is.null(l$sum_vars))      {print(paste('sum vars:',paste(l$sum_vars,collapse='+')),quote=F); combvars <- T }
-    if(!is.null(l$subtract_vars)) {print(paste('subtract vars:',paste(l$subtract_vars,collapse='+')),quote=F); combvars <- T }
-    if(!is.null(l$div_sumvars))   {print(paste('divide vars:',paste(l$div_sumvars,collapse='+')),quote=F); combvars <- T }
-    if(!is.null(l$div_prodvars))  {print(paste('divide vars:',paste(l$div_prodvars,collapse='*')),quote=F); combvars <- T }
 
-    days <- 1
-    if(timestep=='year') {
-      days <- 365
+    # check requested variables exist in output file and print variable names
+    combvars <- F
+    nvars    <- 0
+    if(!is.null(l$vvars))         {print(paste('vector vars:',paste(l$vvars,collapse=', ')),quote=F)
+      l$vvars         <- safe_vvars(l$vvars, ... )
+      nvars <- nvars + length(l$vvars)
+    }
+    if(!is.null(l$sum_vars))      {print(paste('sum vars:',paste(l$sum_vars,collapse='+')),quote=F); combvars <- T 
+      l$sum_vars      <- safe_vvars(l$sum_vars, ... )
+      nvars <- nvars + length(l$sum_vars)
+    }
+    if(!is.null(l$subtract_vars)) {print(paste('subtract vars:',paste(l$subtract_vars,collapse='+')),quote=F); combvars <- T 
+      l$subtract_vars <- safe_vvars(l$subtract_vars, ... )
+      nvars <- nvars + length(l$subtract_vars)
+    }
+    if(!is.null(l$div_sumvars))   {print(paste('divide vars:',paste(l$div_sumvars,collapse='+')),quote=F); combvars <- T 
+      l$div_sumvars   <- safe_vvars(l$div_sumvars, ... )
+      nvars <- nvars + length(l$div_sumvars)
+    }
+    if(!is.null(l$div_prodvars))  {print(paste('divide vars:',paste(l$div_prodvars,collapse='*')),quote=F); combvars <- T 
+      l$div_prodvars  <- safe_vvars(l$div_prodvars, ... )
+      nvars <- nvars + length(l$div_prodvars)
     }
 
-    if(!is.null(l$stackplot)) {
-      if(any(l$vvars=='FATES_NPLANT_AC')) {
-        ld <- length(dim(a3d2))
-        check_vars(a3d2, l$vvars, ld )
-        plot_stack(a3d2, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days )
-      } else {
-        ld <- length(dim(a3d))
-        check_vars(a3d, l$vvars, ld )
-        plot_stack(a3d, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days, ... )
-      }
-
-    } else if(is.null(l$v4d)) {
-      if(combvars) {
-        check_vars(a3d, l$vvars, 3 )
-        check_vars(a3d, l$sum_vars, 3 )
-        check_vars(a3d, l$product_vars, 3 )
-        check_vars(a3d, l$subtract_vars, 3 )
-        check_vars(a3d, l$div_sumvars, 3 )
-        check_vars(a3d, l$div_prodvars, 3 )
-        plot_3dim_combvars(a3d, sum_vars=l$sum_vars, product_vars=l$product_vars,
-                           subtract_vars=l$subtract_vars,
-                           div_sumvars=l$div_sumvars, div_prodvars=l$div_prodvars,
-                           vvars=l$vvars, ylab=l$ylab, xlab=paste(xlab,timestep),
-                           print2screen=print2screen, days=days )
-      } else {
-        check_vars(a3d, l$vvars, 3 )
-        plot_3dim(a3d, vvars=l$vvars, ylab=l$ylab, xlab=paste(xlab,timestep), print2screen=print2screen, days=days )
-      }
-
+    if(nvars==0) {
+      warning(paste("❌ Skipping plot group:", l$ylab, "— no valid vars"))
     } else {
-      if(!is.null(a4d)) {
-        check_vars(a4d, l$vvars, 4 )
-        plot_4dim(a4d, vvars=l$vvars, dim_sub=l$dim_sub, ylab=l$ylab, xlab=paste(xlab,timestep),
-                  print2screen=print2screen, days=days )
+
+      days <- 1
+      if(timestep=='year') {
+        days <- 365
+      }
+  
+      if(!is.null(l$stackplot)) {
+        if(any(l$vvars=='FATES_NPLANT_AC')) {
+          ld <- length(dim(a3d2))
+          #check_vars(a3d2, l$vvars, ld )
+          plot_stack(a3d2, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days )
+        } else {
+          ld <- length(dim(a3d))
+          #check_vars(a3d, l$vvars, ld )
+          plot_stack(a3d, vvars=l$vvars, norm=l$norm, ylabi=l$ylab, xlabi=paste(xlab,timestep), print2screen=print2screen, days=days, ... )
+        }
+  
+      } else if(is.null(l$v4d)) {
+        if(combvars) {
+          #check_vars(a3d, l$vvars, 3 )
+          #check_vars(a3d, l$sum_vars, 3 )
+          #check_vars(a3d, l$product_vars, 3 )
+          #check_vars(a3d, l$subtract_vars, 3 )
+          #check_vars(a3d, l$div_sumvars, 3 )
+          #check_vars(a3d, l$div_prodvars, 3 )
+          plot_3dim_combvars(a3d, sum_vars=l$sum_vars, product_vars=l$product_vars,
+                             subtract_vars=l$subtract_vars,
+                             div_sumvars=l$div_sumvars, div_prodvars=l$div_prodvars,
+                             vvars=l$vvars, ylab=l$ylab, xlab=paste(xlab,timestep),
+                             print2screen=print2screen, days=days )
+        } else {
+          #check_vars(a3d, l$vvars, 3 )
+          plot_3dim(a3d, vvars=l$vvars, ylab=l$ylab, xlab=paste(xlab,timestep), print2screen=print2screen, days=days )
+        }
+  
       } else {
-        warning('a4d argument not given, no 4d plots.')
+        if(!is.null(a4d)) {
+          #check_vars(a4d, l$vvars, 4 )
+          plot_4dim(a4d, vvars=l$vvars, dim_sub=l$dim_sub, ylab=l$ylab, xlab=paste(xlab,timestep),
+                    print2screen=print2screen, days=days )
+        } else {
+          warning('a4d argument not given, no 4d plots.')
+        }
       }
     }
   })

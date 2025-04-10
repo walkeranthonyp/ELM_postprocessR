@@ -115,12 +115,11 @@ if(length(commandArgs(T))>=1) {
 
 
 
-# source directory
-wd_src <- getwd()
-
-
 ### Start processing
 #######################################
+
+# source directory
+wd_src <- getwd()
 
 # check lengths of input vectors match
 length_inv <- c(length(cases), length(syear), length(years), length(tsteps), length(fout_nyears))
@@ -136,14 +135,6 @@ if((sum(length_inv)%%length(cases)) != 0 |
   stop('fix input and try again.')
 } 
 
-# separate spins from transient cases
-spinss      <- grepl('1850', cases )
-cases       <- breakout_cases(cases, spinss, case_labs )
-syear       <- breakout_cases(syear, spinss, case_labs )
-years       <- breakout_cases(years, spinss, case_labs )
-tsteps      <- breakout_cases(tsteps, spinss, case_labs )
-fout_nyears <- breakout_cases(fout_nyears, spinss, case_labs )
-#print(cases,quote=F)
 
 # Can run the ensembles in a serial loop here or in parallel from an external call script  
 # -  to run in parallel from an external scrip pass the variable uq_index from the external script
@@ -159,16 +150,26 @@ if(!is.null(uq_index) & concatenate_uq) {
 } 
 
 
+setwd(paste0(wd_src,'/functions'))
+source('functions_processing.R')
+
+# separate spins from transient cases
+spinss      <- grepl('1850', cases )
+cases       <- breakout_cases(cases, spinss, case_labs )
+syear       <- breakout_cases(syear, spinss, case_labs )
+years       <- breakout_cases(years, spinss, case_labs )
+tsteps      <- breakout_cases(tsteps, spinss, case_labs )
+fout_nyears <- breakout_cases(fout_nyears, spinss, case_labs )
+#print(cases,quote=F)
+
+
 if(!plot_only) {
   print('',quote=F); print('',quote=F); print('',quote=F); print('',quote=F)
   print('Processing runs in model output directory:',quote=F)
   print(wd_mod_out,quote=F)
 
-  setwd(paste0(wd_src,'/functions'))
-  source('functions_processing.R')
-
   setwd(paste0(wd_src,'/scripts'))
-  source('functions_process_netcdf.R', local=T )
+  source('process_netcdf.R', local=T )
 }
 
 

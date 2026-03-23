@@ -45,6 +45,7 @@ if(exists('call_plot')) {
   cases          <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES' )
   highfreq_plots <- F
   plot_nutrients <- F    # make nutrient plots (if caseidprefix contains 'NP' 'RD' or 'ECA' will be automatic)
+  plot_quick_pft <- F    # make plots of biomass by PFT only!! 
 
   # either NULL or an integer number of ensemble members
   uq             <- NULL
@@ -110,98 +111,110 @@ for(c in 1:length(names(cases))) {
   # - can run the ensembles in a serial loop here or in parallel  
   for(u in nuq) {
   
-  fname   <- paste(caseidprefix,sites,case_labs[c],sep='_')
-  fname_a <- paste0(fname,'_annual.RDS')
-
-  # overwriting the fname and fname_a if running UQ ensembles
-  if(!is.null(uq)) {
-    print('',quote=F); print('',quote=F); print('',quote=F)
-    print(paste('Plotting for ensemble index : ', u, ' / ', uq ))
-    fname     <- paste(caseidprefix,sites,case_labs[c],sep='_')
-    uq_member <- paste0('g',formatC(u,width=5,flag=0))
-    fname     <- paste0(fname,'_',uq_member)
-    fname_a   <- paste0(fname,'_',uq_member,'_annual.RDS')
-  }
-
-  if(file.exists(fname_a)) {
-    l1    <- readRDS(fname_a)
-  } else {
-    l1    <- readRDS(paste0(fname,'.RDS'))
-  }
-
-  # extract data
-  # all variables
-  all_vars     <- names(l1$variables)
-  # site and time dimensioned variables
-  algtime      <- l1$data_arrays$`lndgrid,time`
-  # site, ground levels, and time dimensioned variables
-  alglgtime    <- l1$data_arrays$`lndgrid,levgrnd,time`
-  # site, pft, and time dimensioned variables
-  algpfttime   <- l1$data_arrays$`lndgrid,fates_levpft,time`
-  # site, size class, and time dimensioned variables
-  algsclstime  <- l1$data_arrays$`lndgrid,fates_levscls,time`
-  # site, cohort age class, and time dimensioned variables
-  algcaclstime <- l1$data_arrays$`lndgrid,fates_levcacls,time`
-
-
-  # plot required figures
-  plots <- make_figures(algtime, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars  )
-  plot_figures(plots, paste0(fname,'.pdf'), png=png )
-
-  plots <- make_figures(algtime, alglgtime, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
-  plot_figures(plots, paste0(fname,'_physiology','.pdf'), png=png )
-
-  if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
-    print('',quote=F)
-    print('PLOTTING NUTRIENTS')
-    plots <- make_figures(algtime, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
-    plot_figures(plots, paste0(fname,'_nutrients','.pdf'), png=png )
-  }
-
-  if(l1$dimensions['fates_levpft'] > 1) {
-    print('',quote=F)
-    print('PLOTTING PFT')
-    vcl   <- paste0('PFT', 1:l1$dimensions['fates_levpft'] )
-    plots <- make_figures(algpfttime, plotlist=plotlist_pft, xlab=case_xlabs[case_labs[c]],
-                          timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars )
-    plot_figures(plots, paste0(fname,'_pft','.pdf'), png=png )
-  }
-
-  if(l1$dimensions['fates_levscls'] > 1) {
-    print('',quote=F)
-    print('PLOTTING SIZE CLASS')
-    scls <- l1$dim_variables$fates_levscls$vals
-    for(i in 1:length(scls)) {
-       vc <-
-        if(i!=length(scls)) paste(scls[i],'-',scls[i+1],'cm')
-        else paste('>',scls[i],'cm')
-      vcl <- if(i==1) vc else c(vcl,vc)
+    fname   <- paste(caseidprefix,sites,case_labs[c],sep='_')
+    fname_a <- paste0(fname,'_annual.RDS')
+  
+    # overwriting the fname and fname_a if running UQ ensembles
+    if(!is.null(uq)) {
+      print('',quote=F); print('',quote=F); print('',quote=F)
+      print(paste('Plotting for ensemble index : ', u, ' / ', uq ))
+      fname     <- paste(caseidprefix,sites,case_labs[c],sep='_')
+      uq_member <- paste0('g',formatC(u,width=5,flag=0))
+      fname     <- paste0(fname,'_',uq_member)
+      fname_a   <- paste0(fname,'_',uq_member,'_annual.RDS')
     }
-
-    plots <- make_figures(algsclstime, a3d2=algcaclstime, plotlist=plotlist_size_class, xlab=case_xlabs[case_labs[c]],
-                          timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars   )
-    plot_figures(plots, paste0(fname,'_size_class','.pdf'), png=png )
-  }
-
-  # extract & plot daily data
-  if(file.exists(fname_a) & highfreq_plots) {
-    l2 <- readRDS(paste0(fname,'.RDS'))
-    algtime_highfreq   <- l2$data_arrays$`lndgrid,time`
-    alglgtime_highfreq <- l2$data_arrays$`lndgrid,levgrnd,time`
-
-    plots <- make_figures(algtime_highfreq, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
-    plot_figures(plots, paste0(fname,'_highfreq','.pdf'), png=png )
-
-    plots <- make_figures(algtime, alglgtime_highfreq, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
-    plot_figures(plots, paste0(fname,'_highfreq_physiology','.pdf'), png=png )
-
-    if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
-      plots <- make_figures(algtime_highfreq, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
-      plot_figures(plots, paste0(fname,'_highfreq_nutrients','.pdf'), png=png )
+  
+    if(file.exists(fname_a)) {
+      l1    <- readRDS(fname_a)
+    } else {
+      l1    <- readRDS(paste0(fname,'.RDS'))
+    }
+  
+    # extract data
+    # all variables
+    all_vars     <- names(l1$variables)
+    # site and time dimensioned variables
+    algtime      <- l1$data_arrays$`lndgrid,time`
+    # site, ground levels, and time dimensioned variables
+    alglgtime    <- l1$data_arrays$`lndgrid,levgrnd,time`
+    # site, pft, and time dimensioned variables
+    algpfttime   <- l1$data_arrays$`lndgrid,fates_levpft,time`
+    # site, size class, and time dimensioned variables
+    algsclstime  <- l1$data_arrays$`lndgrid,fates_levscls,time`
+    # site, cohort age class, and time dimensioned variables
+    algcaclstime <- l1$data_arrays$`lndgrid,fates_levcacls,time`
+  
+  
+    # plot required figures
+    if(plot_quick_pft) {
+      print('',quote=F)
+      print('QUICK PLOTTING PFT CVEG')
+      vcl   <- paste0('PFT', 1:l1$dimensions['fates_levpft'] )
+      plots <- make_figures(algpfttime, plotlist=plotlist_pft[1:2], xlab=case_xlabs[case_labs[c]],
+                            timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars )
+      plot_figures(plots, paste0(fname,'_pft','.pdf'), png=png )
+  
+    } else {
+  
+      plots <- make_figures(algtime, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars  )
+      plot_figures(plots, paste0(fname,'.pdf'), png=png )
+    
+      plots <- make_figures(algtime, alglgtime, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
+      plot_figures(plots, paste0(fname,'_physiology','.pdf'), png=png )
+    
+      if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
+        print('',quote=F)
+        print('PLOTTING NUTRIENTS')
+        plots <- make_figures(algtime, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
+        plot_figures(plots, paste0(fname,'_nutrients','.pdf'), png=png )
+      }
+    
+      if(l1$dimensions['fates_levpft'] > 1) {
+        print('',quote=F)
+        print('PLOTTING PFT')
+        vcl   <- paste0('PFT', 1:l1$dimensions['fates_levpft'] )
+        plots <- make_figures(algpfttime, plotlist=plotlist_pft, xlab=case_xlabs[case_labs[c]],
+                              timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars )
+        plot_figures(plots, paste0(fname,'_pft','.pdf'), png=png )
+      }
+    
+      if(l1$dimensions['fates_levscls'] > 1) {
+        print('',quote=F)
+        print('PLOTTING SIZE CLASS')
+        scls <- l1$dim_variables$fates_levscls$vals
+        for(i in 1:length(scls)) {
+           vc <-
+            if(i!=length(scls)) paste(scls[i],'-',scls[i+1],'cm')
+            else paste('>',scls[i],'cm')
+          vcl <- if(i==1) vc else c(vcl,vc)
+        }
+    
+        plots <- make_figures(algsclstime, a3d2=algcaclstime, plotlist=plotlist_size_class, xlab=case_xlabs[case_labs[c]],
+                              timestep=case_timestep[case_labs[c]], glab=vcl, avars=all_vars   )
+        plot_figures(plots, paste0(fname,'_size_class','.pdf'), png=png )
+      }
+    
+      # extract & plot daily data
+      if(file.exists(fname_a) & highfreq_plots) {
+        l2 <- readRDS(paste0(fname,'.RDS'))
+        algtime_highfreq   <- l2$data_arrays$`lndgrid,time`
+        alglgtime_highfreq <- l2$data_arrays$`lndgrid,levgrnd,time`
+    
+        plots <- make_figures(algtime_highfreq, plotlist=plotlist, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
+        plot_figures(plots, paste0(fname,'_highfreq','.pdf'), png=png )
+    
+        plots <- make_figures(algtime, alglgtime_highfreq, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
+        plot_figures(plots, paste0(fname,'_highfreq_physiology','.pdf'), png=png )
+    
+        if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
+          plots <- make_figures(algtime_highfreq, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
+          plot_figures(plots, paste0(fname,'_highfreq_nutrients','.pdf'), png=png )
+        }
+      }
     }
   }
 }
-}
+
 
 
 ### END ###

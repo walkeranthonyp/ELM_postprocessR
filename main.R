@@ -4,7 +4,6 @@
 #
 # AWalker
 # April 2021
-# BSharma (update,  May 2024)
 #
 ##############################
 
@@ -41,6 +40,7 @@ wd_out          <- NULL
 
 # filename etc variables
 caseidprefix    <- 'FACEconly_exptest'
+caseidsuffix    <- NULL
 sites           <- 'US-DUK'
 #cases           <- c('I1850CLM45ED_ad_spinup', 'I1850CLM45ED', 'I20TRCLM45ED' )
 cases           <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES' )
@@ -94,6 +94,7 @@ plot_only          <- F    # only call plotting or concatenation script if their
 highfreq_plots     <- F    # plot high-frequency plots where sub-annual data available
 png                <- F    # convert pdf plots into png images to reduce size
 plot_nutrients     <- F    # make nutrient plots (if caseidprefix contains 'NP' 'RD' or 'ECA' will be automatic)
+plot_quick_pft     <- F    # make plots of biomass by PFT only!! 
 concatenate_caseid <- F    # concatenate RDS files for all runs in caseidprefix vector
 concatenate_uq     <- F    # concatenate RDS files for all runs in a UQ ensemble
 concatenate_daily  <- F    # concatenate only RDS annual files

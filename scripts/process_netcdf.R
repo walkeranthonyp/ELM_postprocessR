@@ -24,6 +24,8 @@ for(cid in 1:length(caseidprefix)) {
   print('',quote=F)
   print('Caseidprefix:',quote=F)
   print(caseidprefix[cid],quote=F)
+  print('Caseidsuffix:',quote=F)
+  print(caseidsuffix,quote=F)
   print('',quote=F)
 
 
@@ -42,18 +44,28 @@ for(cid in 1:length(caseidprefix)) {
 
     # combine sim variables to get all simulations to be put in a single file
     sims <- apply(as.matrix(expand.grid(caseidprefix[cid],sites,cases_current)), 1, paste, collapse='_' )
+    if(!is.null(caseidsuffix)) sims <- paste(sims, caseidsuffix, sep='_' )
     print('',quote=F)
     print('Processing (& concatenating) case(s):',quote=F)
     print(sims,quote=F)
+    print('case(s):',quote=F)
     print(cases_current,quote=F)
+    print('case start year(s):',quote=F)
     print(syear_current,quote=F)
+    print('case run year(s):',quote=F)
     print(years_current,quote=F)
+    print('timesteps per year in each case:',quote=F)
     print(tsteps_current,quote=F)
+    print('number of years per output file in each case:',quote=F)
     print(fout_nyears_current,quote=F)
   
-    # UQ/Ensemble loop 
-    print('nuq')
-    print(nuq) 
+    # UQ/Ensemble loop
+    if(length(nuq)>1) { 
+      print('',quote=F)
+      print(paste('Processing', length(nuq), 'ensemble members.'), quote=F )
+      #print('nuq')
+      #print(nuq) 
+    }
     for(u in nuq) {
       print('',quote=F);print('',quote=F);print('',quote=F)
       if(!is.null(uq)) print(paste('Processing uq member:',u), quote=F )
@@ -282,6 +294,7 @@ for(cid in 1:length(caseidprefix)) {
           }
           print(paste('  all data values written'), quote=F )
           if(fout_nyears_current[s]>1) tend_prev <- tend_prev + tcount 
+          nc_close(ncdf2)
         }
         print('done.',quote=F)
 

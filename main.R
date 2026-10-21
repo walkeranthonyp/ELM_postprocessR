@@ -39,10 +39,9 @@ wd_out          <- NULL
 
 
 # filename etc variables
-caseidprefix    <- 'FACEconly_exptest'
+caseidprefix    <- NULL 
 caseidsuffix    <- NULL
 sites           <- 'US-DUK'
-#cases           <- c('I1850CLM45ED_ad_spinup', 'I1850CLM45ED', 'I20TRCLM45ED' )
 cases           <- c('I1850ELMFATES_ad_spinup', 'I1850ELMFATES', 'I20TRELMFATES' )
 case_labs       <- c('spins', 'trans' )
 # either NULL or an integer number of ensemble members, NULL means no ensemble
@@ -95,7 +94,8 @@ highfreq_plots     <- F    # plot high-frequency plots where sub-annual data ava
 png                <- F    # convert pdf plots into png images to reduce size
 plot_nutrients     <- F    # make nutrient plots (if caseidprefix contains 'NP' 'RD' or 'ECA' will be automatic)
 plot_quick_pft     <- F    # make plots of biomass by PFT only!! 
-concatenate_caseid <- F    # concatenate RDS files for all runs in caseidprefix vector
+# APW: could expand to concat all caseloop elements
+concatenate_caseid <- F    # concatenate RDS files for all sites in a given caseloop element 
 concatenate_uq     <- F    # concatenate RDS files for all runs in a UQ ensemble
 concatenate_daily  <- F    # concatenate only RDS annual files
 
@@ -114,6 +114,8 @@ if(length(commandArgs(T))>=1) {
   }
 }
 
+if(concatenate_uq & is.null(uq))          concatenate_uq <- F 
+if(concatenate_caseid & length(sites)==1) concatenate_caseid <- F 
 
 
 ### Start processing
@@ -155,36 +157,110 @@ setwd(paste0(wd_src,'/functions'))
 source('functions_processing.R')
 
 # separate spins from transient cases
-spinss      <- grepl('1850', cases )
-cases       <- breakout_cases(cases, spinss, case_labs )
-syear       <- breakout_cases(syear, spinss, case_labs )
-years       <- breakout_cases(years, spinss, case_labs )
-tsteps      <- breakout_cases(tsteps, spinss, case_labs )
-fout_nyears <- breakout_cases(fout_nyears, spinss, case_labs )
+if(length(tsteps)>1) { 
+  if(!sum(tsteps==tsteps[1])==length(tsteps)) {
+    spinss      <- grepl('1850', cases )
+    cases       <- breakout_cases(cases, spinss, case_labs )
+    syear       <- breakout_cases(syear, spinss, case_labs )
+    years       <- breakout_cases(years, spinss, case_labs )
+    tsteps      <- breakout_cases(tsteps, spinss, case_labs )
+    fout_nyears <- breakout_cases(fout_nyears, spinss, case_labs )
+  } else {
+    cases        <- list(cases)
+    case_labs    <- 'allcases'
+    names(cases) <- case_labs 
+    syear        <- list(syear)
+    years        <- list(years)
+    tsteps       <- list(tsteps)
+    fout_nyears  <- list(fout_nyears)
+  } 
+} else {
+  case_labs    <- 'allcases'
+  names(cases) <- case_labs 
+}
 #print(cases,quote=F)
 
 
-if(!plot_only) {
-  print('',quote=F); print('',quote=F); print('',quote=F); print('',quote=F)
-  print('Processing runs in model output directory:',quote=F)
-  print(wd_mod_out,quote=F)
+# determine caseid prefix suffix loops 
+prefix <- T
+suffix <- F
+caseloop <- caseidprefix
+if(!is.null(caseidprefix) & !is.null(caseidsuffix)) {
+  if(length(caseidprefix)>1 & length(caseidsuffix)>1 ) 
+    stop("caseidprefix and caseidsuffix lengths both greater than 1")
+} else if(is.null(caseidprefix) & is.null(caseidsuffix)) {
+  stop("caseidprefix and caseidsuffix both null")
+} 
 
-  setwd(paste0(wd_src,'/scripts'))
-  source('process_netcdf.R', local=T )
+if(!is.null(caseidsuffix)) {
+  if(length(caseidsuffix)>1 ) {
+    prefix   <- F 
+    suffix   <- T
+    caseloop <- caseidsuffix  
+  }
+}  
+
+print('',quote=F)
+print('Looping over:',quote=F)
+print(caseloop,quote=F)
+
+
+# caseidprefix/suffix loop
+#for(cid in 1:length(caseidprefix)) {
+null_wd_out <- F
+for(cid in 1:length(caseloop)) {
+
+  # create dir/filename tag
+  od <-
+    if(prefix & !is.null(caseidsuffix))      paste(caseloop[cid],caseidsuffix,sep='_') 
+    else if(suffix & !is.null(caseidprefix)) paste(caseidprefix,caseloop[cid],sep='_') 
+    else                                     caseloop[cid]
+
+  # create dir name
+  if(is.null(wd_out) | null_wd_out) {
+    wd_out <- paste0(wd_mod_out,'/',od,'_processed')
+    setwd(wd_mod_out)
+    null_wd_out <- T
+  }
+  if(!file.exists(wd_out)) dir.create(wd_out)
+
+  print('',quote=F)
+  print('Caseidprefix:',quote=F)
+  if(prefix) print(caseloop[cid],quote=F) else print(caseidprefix,quote=F)
+  print('Caseidsuffix:',quote=F)
+  if(suffix) print(caseloop[cid],quote=F) else print(caseidsuffix,quote=F)
+  print('',quote=F)
+  print('Postprocessing output directory:',quote=F)
+  print(wd_out,quote=F)
+  print('',quote=F)
+
+
+  # Process netcdf files
+  if(!plot_only) {
+    print('',quote=F); print('',quote=F); print('',quote=F); print('',quote=F)
+    print('Processing runs in model output directory:',quote=F)
+    print(wd_mod_out,quote=F)
+  
+    setwd(paste0(wd_src,'/scripts'))
+    source('process_netcdf.R', local=T )
+  }
+  
+  
+  # Make figures
+  if(call_plot) {
+    setwd(paste0(wd_src,'/scripts'))
+    source('plot_ELM.R', local=T )
+  }
+  
+  
+  # concatenate UQ or caseidprefix/suffix
+  if(concatenate_caseid | concatenate_uq) {
+    setwd(paste0(wd_src,'/scripts'))
+    source('concatenate_ELM.R', local=T )
+  }
+  
+# case prefix/suffix loop
 }
-
-
-if(call_plot) {
-  setwd(paste0(wd_src,'/scripts'))
-  source('plot_ELM.R', local=T )
-}
-
-
-if(concatenate_caseid | concatenate_uq) {
-  setwd(paste0(wd_src,'/scripts'))
-  source('concatenate_ELM.R', local=T )
-}
-
 
 print('',quote=F)
 print('',quote=F)

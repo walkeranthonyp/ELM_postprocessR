@@ -18,8 +18,8 @@ library(viridis)
 
 # variables not passsed from processing script
 wd_out_plots   <- NULL
-case_xlabs     <- c(spins='Spin-up', trans='Transient', aCO2='Ambient CO2', eCO2='Elevated CO2' )
-case_timestep  <- c(spins='year', trans='day', aCO2='day', eCO2='day' )
+case_xlabs     <- c(spins='Spin-up', trans='Transient', aCO2='Ambient CO2', eCO2='Elevated CO2', allcases='Simulation' )
+case_timestep  <- c(spins='year', trans='day', aCO2='day', eCO2='day', allcases='year' )
 
 print('',quote=F);print('',quote=F);print('',quote=F)
 
@@ -111,14 +111,15 @@ for(c in 1:length(names(cases))) {
   # - can run the ensembles in a serial loop here or in parallel  
   for(u in nuq) {
   
-    fname   <- paste(caseidprefix,sites,case_labs[c],sep='_')
+    #fname   <- paste(caseidprefix,sites,case_labs[c],sep='_')
+    fname   <- paste(od,sites,names(cases)[c],sep='_')
     fname_a <- paste0(fname,'_annual.RDS')
   
     # overwriting the fname and fname_a if running UQ ensembles
     if(!is.null(uq)) {
       print('',quote=F); print('',quote=F); print('',quote=F)
       print(paste('Plotting for ensemble index : ', u, ' / ', uq ))
-      fname     <- paste(caseidprefix,sites,case_labs[c],sep='_')
+      #fname     <- paste(caseidprefix,sites,case_labs[c],sep='_')
       uq_member <- paste0('g',formatC(u,width=5,flag=0))
       fname     <- paste0(fname,'_',uq_member)
       fname_a   <- paste0(fname,'_',uq_member,'_annual.RDS')
@@ -162,7 +163,8 @@ for(c in 1:length(names(cases))) {
       plots <- make_figures(algtime, alglgtime, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
       plot_figures(plots, paste0(fname,'_physiology','.pdf'), png=png )
     
-      if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
+      #if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
+      if(grepl('NP|RD|ECA',caseloop[cid]) | plot_nutrients) {
         print('',quote=F)
         print('PLOTTING NUTRIENTS')
         plots <- make_figures(algtime, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
@@ -181,7 +183,7 @@ for(c in 1:length(names(cases))) {
       if(l1$dimensions['fates_levscls'] > 1) {
         print('',quote=F)
         print('PLOTTING SIZE CLASS')
-        scls <- l1$dim_variables$fates_levscls$vals
+        scls <- signif(l1$dim_variables$fates_levscls$vals, 2 )
         for(i in 1:length(scls)) {
            vc <-
             if(i!=length(scls)) paste(scls[i],'-',scls[i+1],'cm')
@@ -206,7 +208,8 @@ for(c in 1:length(names(cases))) {
         plots <- make_figures(algtime, alglgtime_highfreq, plotlist=plotlist_phys, xlab=case_xlabs[case_labs[c]], timestep=case_timestep[case_labs[c]], avars=all_vars   )
         plot_figures(plots, paste0(fname,'_highfreq_physiology','.pdf'), png=png )
     
-        if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
+        #if(grepl('NP|RD|ECA',caseidprefix) | plot_nutrients) {
+        if(grepl('NP|RD|ECA',caseloop[cid]) | plot_nutrients) {
           plots <- make_figures(algtime_highfreq, plotlist=plotlist_nutrients, xlab=case_xlabs[case_labs[c]], timestep='year', avars=all_vars   )
           plot_figures(plots, paste0(fname,'_highfreq_nutrients','.pdf'), png=png )
         }

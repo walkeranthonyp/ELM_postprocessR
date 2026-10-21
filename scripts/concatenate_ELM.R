@@ -3,23 +3,26 @@
 
 print('',quote=F)
 print('Concatenate processed ELM output into a single RDS file',quote=F)
-print(caseidprefix,quote=F)
+#print(caseidprefix,quote=F)
+print(caseloop,quote=F)
 print(cases,quote=F)
 
 
 # caseidprefix loop 
-for(cid in 1:length(caseidprefix)) {
+#for(cid in 1:length(caseidprefix)) {
 
-  null_wd_out <- F 
-  if(is.null(wd_out)) {
-    wd_out <- paste0(wd_mod_out,'/',caseidprefix[cid],'_processed')
-    setwd(wd_mod_out)
-    null_wd_out <- T
-  }
+#  null_wd_out <- F 
+#  if(is.null(wd_out)) {
+#    wd_out <- paste0(wd_mod_out,'/',caseidprefix[cid],'_processed')
+#    setwd(wd_mod_out)
+#    null_wd_out <- T
+#  }
   
   print('',quote=F)
-  print('Caseidprefix:',quote=F)
-  print(caseidprefix[cid],quote=F)
+  #print('Caseidprefix:',quote=F)
+  #print(caseidprefix[cid],quote=F)
+  print('Caseloop:',quote=F)
+  print(caseloop[cid],quote=F)
   print('output directory:',quote=F)
   print(wd_out,quote=F)
   print('',quote=F)
@@ -29,9 +32,11 @@ for(cid in 1:length(caseidprefix)) {
   for(c in 1:length(cases)) {
     
     # file names 
-    cases_current   <- cases[[c]] 
+    cases_current <- cases[[c]] 
     uq_member <- paste0('g',formatC(1:uq,width=5,flag=0))
-    new_fname <- paste(caseidprefix[cid],sites,names(cases)[c],sep='_')
+    #new_fname <- paste(caseidprefix[cid],sites,names(cases)[c],sep='_')
+    new_fname <- paste(od,sites,names(cases)[c],sep='_')
+    #if(!is.null(uq)) new_fname <- paste(new_fname,uq_member,sep='_')
     if(!is.null(uq)) {
       new_fname_concat <- paste0(new_fname,'_UQconcatenated.RDS')
       new_fname        <- paste(new_fname,uq_member, sep='_' )
@@ -89,7 +94,8 @@ for(cid in 1:length(caseidprefix)) {
 
     # can add switch to delete ensemble member RDS's
 
-}}
+}
+#}
 
 
 

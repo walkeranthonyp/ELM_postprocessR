@@ -36,7 +36,7 @@ plotlist <- list(
   ),
   p0.4 = list(
     vvars = c('PCO2'),
-    ylab  = expression('Air '*CO[2]*' concentration [ppm]')
+    ylab  = expression('Air '*CO[2]*' partial pressure [Pa]')
   ),
   p0 = list(
     vvars = c('FATES_GPP','FATES_NPP','FATES_AUTORESP','FATES_EXCESS_RESP'),
@@ -153,11 +153,23 @@ plotlist_nutrients <- list(
     ylab  = expression('P Pool [gP '*m^-2*']')
   ),
   p4 = list(
-    #vvars = c('NUPTAKE','NNEED','NEFFLUX'),
+    vvars = c('FATES_VMAXNH4','FATES_VMAXNO3')
+    ylab  = expression('N Vmax [gN '*m^-2*' timestep'^-1*']')
+  ),
+  p4.1 = list(
     vvars = c('FATES_NO3UPTAKE','FATES_NH4UPTAKE','FATES_NDEMAND','FATES_NFIX_SYM','FATES_NEFFLUX'),
     ylab  = expression('N Flux [gN '*m^-2*' timestep'^-1*']')
   ),
+
   p5 = list(
+    vvars = c('FATES_VMAXPO4')
+    ylab  = expression('P Vmax [gP '*m^-2*' timestep'^-1*']')
+  ),
+  p5.1 = list(
+    vvars = c('FATES_FROOTMAINTAR_NETVMAX')
+    ylab  = expression('Respiration due to Vmax variation [gC '*m^-2*' timestep'^-1*']')
+  ),
+  p5.2 = list(
     vvars = c('FATES_PUPTAKE','FATES_PDEMAND','FATES_PEFFLUX'),
     ylab  = expression('P Flux [gP '*m^-2*' timestep'^-1*']')
   ),

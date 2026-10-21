@@ -7,26 +7,31 @@
 #
 ##############################
 
-# caseidprefix loop
-for(cid in 1:length(caseidprefix)) {
-
-  null_wd_out <- F
-  if(is.null(wd_out)) {
-    wd_out <- paste0(wd_mod_out,'/',caseidprefix[cid],'_processed')
-    setwd(wd_mod_out)
-    null_wd_out <- T
-  }
-  if(!file.exists(wd_out)) dir.create(wd_out)
-
-  print('',quote=F)
-  print('Postprocessing output directory:',quote=F)
-  print(wd_out,quote=F)
-  print('',quote=F)
-  print('Caseidprefix:',quote=F)
-  print(caseidprefix[cid],quote=F)
-  print('Caseidsuffix:',quote=F)
-  print(caseidsuffix,quote=F)
-  print('',quote=F)
+# caseidprefix/suffix loop
+#for(cid in 1:length(caseidprefix)) {
+#for(cid in 1:length(caseloop)) {
+#
+#  null_wd_out <- F
+#  if(is.null(wd_out)) {
+#    od <-
+#      if(prefix & !is.null(caseidsuffix))      paste(caseloop[cid],caseidsuffix,sep='_') 
+#      else if(suffix & !is.null(caseidprefix)) paste(caseidprefix,caseloop[cid],sep='_') 
+#      else                                     caseloop[cid]
+#    wd_out <- paste0(wd_mod_out,'/',od,'_processed')
+#    setwd(wd_mod_out)
+#    null_wd_out <- T
+#  }
+#  if(!file.exists(wd_out)) dir.create(wd_out)
+#
+#  print('',quote=F)
+#  print('Postprocessing output directory:',quote=F)
+#  print(wd_out,quote=F)
+#  print('',quote=F)
+#  print('Caseidprefix:',quote=F)
+#  if(prefix) print(caseloop[cid],quote=F) else print(caseidprefix,quote=F)
+#  print('Caseidsuffix:',quote=F)
+#  if(suffix) print(caseloop[cid],quote=F) else print(caseidsuffix,quote=F)
+#  print('',quote=F)
 
 
   # cases loop
@@ -42,9 +47,14 @@ for(cid in 1:length(caseidprefix)) {
     ntsteps_current     <- sum(years_current * tsteps_current)
     #if(names(years)[c]=='spins' & fout_nyears_current[1]>1) ntsteps_current <- ntsteps_current + 1 
 
-    # combine sim variables to get all simulations to be put in a single file
-    sims <- apply(as.matrix(expand.grid(caseidprefix[cid],sites,cases_current)), 1, paste, collapse='_' )
-    if(!is.null(caseidsuffix)) sims <- paste(sims, caseidsuffix, sep='_' )
+    # combine sim variables to have all simulations put into a single file
+    if(prefix) {
+      sims <- apply(as.matrix(expand.grid(caseloop[cid],sites,cases_current)), 1, paste, collapse='_' )
+      if(!is.null(caseidsuffix)) sims <- paste(sims, caseidsuffix, sep='_' )
+    } else if(suffix) {
+      sims <- apply(as.matrix(expand.grid(sites,cases_current,caseloop[cid])), 1, paste, collapse='_' )
+      if(!is.null(caseidprefix)) sims <- paste(caseidprefix, sims, sep='_' )
+    }
     print('',quote=F)
     print('Processing (& concatenating) case(s):',quote=F)
     print(sims,quote=F)
@@ -79,7 +89,7 @@ for(cid in 1:length(caseidprefix)) {
             paste(wd_mod_out,sims[s],'run', sep='/' )
           } else {
             uq_member <- paste0('g',formatC(u,width=5,flag=0))
-            paste(wd_mod_out,'UQ',sims[s],uq_member, sep='/' )
+            paste(wd_mod_out,'UQ/ensemble',sims[s],uq_member, sep='/' )
           }
 
         print('',quote=F)
@@ -117,7 +127,8 @@ for(cid in 1:length(caseidprefix)) {
 
           # create new nc file
           setwd(wd_out)
-          new_fname <- paste(caseidprefix[cid],sites,names(cases)[c],sep='_')
+          #new_fname <- paste(caseidprefix[cid],sites,names(cases)[c],sep='_')
+          new_fname <- paste(od,sites,names(cases)[c],sep='_')
           if(!is.null(uq)) new_fname <- paste(new_fname,uq_member,sep='_')
           print(paste('  file:',new_fname),quote=F)
           print(paste('  time steps in new file:',ntsteps_current),quote=F)
@@ -166,19 +177,32 @@ for(cid in 1:length(caseidprefix)) {
         print(wd_mod_out_sim,quote=F)
 
         # output file years
-        if(names(years)[c]=='spins') {
-          read_final_year   <- if(tsteps_current[s]==1) 1 else 0
-          if(fout_nyears_current[s]>1) {
-            year_range <- seq(syear_current[s], years_current[s], fout_nyears_current[s] )
-            #if(cases_current[s]==cases_current[1]) year_range <- c(year_range, years_current[s]+read_final_year )  
-            year_range <- c(year_range, years_current[s]+read_final_year )  
-          } else {
-            # the + read_final_year here means yr 1 is not read, because for a spin that shows the initialisation values
-            year_range <- syear_current[s]:years_current[s] + read_final_year
-          }
+#        if(names(years)[c]=='spins') {
+#          read_final_year   <- if(tsteps_current[s]==1) 1 else 0
+#          if(fout_nyears_current[s]>1) {
+#            year_range <- seq(syear_current[s], years_current[s], fout_nyears_current[s] )
+#            #if(cases_current[s]==cases_current[1]) year_range <- c(year_range, years_current[s]+read_final_year )  
+#            year_range <- c(year_range, years_current[s]+read_final_year )  
+#          } else {
+#            # the + read_final_year here means yr 1 is not read, because for a spin that shows the initialisation values
+#            year_range <- syear_current[s]:years_current[s] + read_final_year
+#          }
+#          timecount_augment <- tcaug
+#        } else {
+#          year_range   <- syear_current[s]:(syear_current[s] + years_current[s] - 1)
+#          timecount_augment <- 0
+#        }
+        read_final_year <- if(tsteps_current[s]==1) 1 else 0
+        if(fout_nyears_current[s]>1) {
+          year_range <- seq(syear_current[s], (syear_current[s] + years_current[s] - 1), fout_nyears_current[s] )
+          year_range <- c(year_range, year_range[length(year_range)]+read_final_year )  
+        } else {
+          # the + read_final_year here means yr 1 is not read, because for a spin that shows the initialisation values
+          year_range   <- syear_current[s]:(syear_current[s] + years_current[s] - 1) + read_final_year
+        }
+        if('I1850'%in%sims[s]) {
           timecount_augment <- tcaug
         } else {
-          year_range   <- syear_current[s]:(syear_current[s] + years_current[s] - 1)
           timecount_augment <- 0
         }
 
@@ -197,9 +221,13 @@ for(cid in 1:length(caseidprefix)) {
           # time counting variables
           # - time steps in input file
           tsteps_in_file <- tsteps_current[s] * fout_nyears_current[s]
-          if(y==(years_current[s]+1)) tsteps_in_file <- 1
+          #if(y==(years_current[s]+1)) tsteps_in_file <- 1
+          if(y==((syear_current[s] + years_current[s]))) tsteps_in_file <- 1
           # - time data in input file start for output file 
-          if(names(years)[c]=='spins' & tsteps_current[s]==1) {
+          #if(names(years)[c]=='spins' & tsteps_current[s]==1) {
+          #if('I1850'%in%cases_current[s] & tsteps_current[s]==1) {
+          if('I1850'%in%sims[s] & tsteps_current[s]==1) {
+          #if(tsteps_current[s]==1) {
             tstart <- y-1
             if(fout_nyears_current[s]>1) {
               #if(cases_current[s]!=cases_current[1]) tsteps_in_file <- tsteps_in_file + 1
@@ -421,9 +449,11 @@ for(cid in 1:length(caseidprefix)) {
       }
       print('done.',quote=F)
 
-      if(null_wd_out) wd_out <- NULL
+      #if(null_wd_out) wd_out <- NULL
       # caseidprefix & cases & uq loops, & plot only if
-}}}
+#}}}
+# cases & uq loops
+}}
 
 
 
